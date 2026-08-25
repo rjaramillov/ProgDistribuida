@@ -118,6 +118,38 @@
   .iag-row{display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--ink-soft); margin-top:14px;}
   .iag-row input{margin-top:3px;}
 
+  /* infografía con IA */
+  .prompt-box{
+    position:relative; background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:16px 46px 16px 16px; margin:14px 0; font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px; line-height:1.6; color:var(--ink);
+  }
+  .copy-btn{
+    position:absolute; top:12px; right:12px; border:1px solid var(--line); background:#fff;
+    border-radius:8px; padding:5px 10px; font-size:11px; color:var(--navy); font-weight:600;
+  }
+  .copy-btn.copied{border-color:var(--success); color:var(--success-text); background:var(--success-tint);}
+  .responsible-box{
+    border:1.5px solid var(--amber); background:var(--amber-tint); border-radius:10px;
+    padding:14px 16px; margin:14px 0; font-size:13.5px; color:var(--ink); line-height:1.55;
+  }
+  .responsible-box b{color:var(--navy);}
+  .file-row{margin:16px 0;}
+  input[type=file]{
+    display:block; width:100%; font-size:13px; color:var(--ink-soft);
+    border:1.5px dashed var(--line); border-radius:10px; padding:14px; background:#fff;
+  }
+  .img-preview-wrap{margin-top:14px; display:none;}
+  .img-preview-wrap.show{display:block;}
+  .img-preview-wrap img{
+    max-width:100%; max-height:320px; border-radius:10px; border:1px solid var(--line); display:block;
+  }
+  .remove-img-btn{
+    margin-top:8px; border:1px solid var(--danger); background:#fff; color:var(--danger);
+    border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600;
+  }
+  .img-hint{font-size:12px; color:var(--ink-soft); margin-top:6px;}
+
   footer{margin-top:48px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft);}
   .status-line{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--teal-text); margin-top:10px; min-height:16px;}
 
@@ -142,7 +174,7 @@
     <span>Programación Distribuida — Unidad I</span>
   </div>
   <div class="progress-dots" id="progressDots" aria-hidden="true">
-    <span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
   </div>
 </div>
 
@@ -241,8 +273,37 @@
   <section class="block" id="s6">
     <div class="block-head"><span class="block-num">06</span><h2>Reflexión de cierre</h2></div>
     <div class="panel">
-      <label for="reflexion">Si le quitáramos la capa de Transporte a internet, ¿qué se perdería? Explica con tus propias palabras.</label>
+      <label for="reflexion">Cuando reordenaste los segmentos del mensaje de Ana, ¿qué habría pasado si en vez de llegar desordenado, uno se hubiera perdido en el camino? ¿Crees que TCP lo notaría? Explica con tus propias palabras.</label>
       <textarea id="reflexion" placeholder="Escribe tu respuesta aquí..."></textarea>
+    </div>
+  </section>
+
+  <!-- INFOGRAFIA CON IA -->
+  <section class="block" id="s7">
+    <div class="block-head"><span class="block-num">07</span><h2>Infografía con IA: el viaje de tu app favorita</h2></div>
+    <div class="panel">
+      <p style="margin-top:0;">Elige tu aplicación favorita — la que quieras, no tiene que ser una de las que vimos hoy — y usa una IA generativa (Claude, ChatGPT, Napkin, Gamma, la que prefieras) para construir una infografía de una sola página que muestre cómo viaja un mensaje o una acción a través de las 4 capas del modelo TCP/IP, mostrando el encapsulamiento.</p>
+
+      <div class="prompt-box"><button class="copy-btn" id="copyPromptBtn" type="button" data-copy="Ayúdame a explicar cómo viaja un mensaje o una acción en [nombre de tu app favorita] a través de las 4 capas del modelo TCP/IP, usando una infografía de una sola página. Muestra el encapsulamiento: cómo los datos se van envolviendo en cada capa (Aplicación → Transporte → Internet → Acceso a la red) hasta convertirse en señales físicas, y qué pasa al revés cuando el mensaje llega a su destino. Básate en información verificable — si no estás seguro de un dato, dímelo en vez de inventarlo.">Copiar</button>Ayúdame a explicar cómo viaja un mensaje o una acción en [nombre de tu app favorita] a través de las 4 capas del modelo TCP/IP, usando una infografía de una sola página. Muestra el encapsulamiento: cómo los datos se van envolviendo en cada capa (Aplicación → Transporte → Internet → Acceso a la red) hasta convertirse en señales físicas, y qué pasa al revés cuando el mensaje llega a su destino. Básate en información verificable — si no estás seguro de un dato, dímelo en vez de inventarlo.</div>
+
+      <div class="responsible-box">
+        <b>Uso responsable de la IA:</b> no te quedes con la primera respuesta sin confirmarla. Investiga, verifica y valida los datos que uses antes de darlos por buenos — apóyate en lo que ya viste en los artefactos de "Sigue el paquete" y "Viaje del Paquete" de hoy. Si tu infografía incluye conceptos o imágenes que vienen de otra fuente (no generados por ti o por la IA desde cero), referéncialos en formato APA 7.ª ed. en el campo de abajo.
+      </div>
+
+      <div class="file-row">
+        <label for="infografiaInput">Sube tu infografía (imagen)</label>
+        <input type="file" id="infografiaInput" accept="image/*">
+        <div class="img-hint" id="imgHint">Formatos aceptados: JPG, PNG, WEBP.</div>
+        <div class="img-preview-wrap" id="imgPreviewWrap">
+          <img id="imgPreview" alt="Vista previa de tu infografía">
+          <br><button class="remove-img-btn" id="removeImgBtn" type="button">Quitar imagen</button>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-top:16px; margin-bottom:0;">
+        <label for="infografiaRefs">Tus referencias (APA 7.ª ed.)</label>
+        <textarea id="infografiaRefs" placeholder="Ej. Python Software Foundation. (s.f.). threading — Thread-based parallelism. docs.python.org/3/library/threading.html&#10;Una referencia por línea."></textarea>
+      </div>
     </div>
   </section>
 
@@ -256,7 +317,7 @@
       </div>
       <div class="iag-row">
         <input type="checkbox" id="usoIA">
-        <label for="usoIA" style="margin:0; font-weight:400; color:var(--ink-soft);">Usé asistencia de IA generativa para preparar mi respuesta de reflexión (declaratoria de uso de IAG — Acuerdo No. 23/2024 UdeC).</label>
+        <label for="usoIA" style="margin:0; font-weight:400; color:var(--ink-soft);">Usé asistencia de IA generativa para preparar mi reflexión y/o mi infografía, y verifiqué la información que utilicé (declaratoria de uso de IAG — Acuerdo No. 23/2024 UdeC).</label>
       </div>
       <button class="primary-btn" id="btnPDF">Generar mi evidencia (PDF)</button>
       <div class="status-line" id="statusLine"></div>
@@ -285,11 +346,11 @@
 (function(){
   "use strict";
 
-  var progress = {c1:false,c2:false,c3:false,c4:false,c5:false,c6:false};
+  var progress = {c1:false,c2:false,c3:false,c4:false,c5:false,c6:false,c7:false};
   var dotEls = document.querySelectorAll("#progressDots span");
   function markDone(key){
     progress[key] = true;
-    var order = ["c1","c2","c3","c4","c5","c6"];
+    var order = ["c1","c2","c3","c4","c5","c6","c7"];
     order.forEach(function(k, i){ if(progress[k]) dotEls[i].classList.add("done"); });
   }
 
@@ -579,6 +640,111 @@
     if(reflexion.value.trim().length > 10) markDone("c6");
   });
 
+  /* ---------- 7. infografia con IA ---------- */
+  var infografiaDataURL = null;
+  var infografiaAspect = 1; // width / height
+  var infografiaInput = document.getElementById("infografiaInput");
+  var imgPreviewWrap = document.getElementById("imgPreviewWrap");
+  var imgPreview = document.getElementById("imgPreview");
+  var imgHint = document.getElementById("imgHint");
+  var removeImgBtn = document.getElementById("removeImgBtn");
+  var infografiaRefs = document.getElementById("infografiaRefs");
+
+  function checkInfografiaDone(){
+    if(infografiaDataURL && infografiaRefs.value.trim().length > 0) markDone("c7");
+  }
+
+  function resetInfografia(){
+    infografiaDataURL = null;
+    infografiaAspect = 1;
+    imgPreviewWrap.classList.remove("show");
+    imgPreview.src = "";
+    infografiaInput.value = "";
+    imgHint.textContent = "Formatos aceptados: JPG, PNG, WEBP.";
+    imgHint.style.color = "var(--ink-soft)";
+  }
+
+  infografiaInput.addEventListener("change", function(){
+    var file = infografiaInput.files && infografiaInput.files[0];
+    if(!file) return;
+
+    if(file.type.indexOf("image/") !== 0){
+      imgHint.textContent = "Ese archivo no es una imagen. Sube un JPG, PNG o WEBP.";
+      imgHint.style.color = "var(--danger)";
+      infografiaInput.value = "";
+      return;
+    }
+    if(file.size > 15 * 1024 * 1024){
+      imgHint.textContent = "La imagen pesa demasiado (máximo 15 MB). Prueba con una captura o exportación más ligera.";
+      imgHint.style.color = "var(--danger)";
+      infografiaInput.value = "";
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var maxW = 1200;
+          var scale = Math.min(1, maxW / img.width);
+          var w = Math.round(img.width * scale);
+          var h = Math.round(img.height * scale);
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          infografiaDataURL = canvas.toDataURL("image/jpeg", 0.85);
+          infografiaAspect = w / h;
+
+          imgPreview.src = infografiaDataURL;
+          imgPreviewWrap.classList.add("show");
+          imgHint.textContent = "Imagen cargada correctamente.";
+          imgHint.style.color = "var(--success-text)";
+          checkInfografiaDone();
+        } catch(err){
+          imgHint.textContent = "No se pudo procesar la imagen en este dispositivo. Intenta con otro archivo.";
+          imgHint.style.color = "var(--danger)";
+          infografiaDataURL = null;
+          infografiaInput.value = "";
+        }
+      };
+      img.onerror = function(){
+        imgHint.textContent = "No se pudo leer esa imagen. Intenta con otro archivo.";
+        imgHint.style.color = "var(--danger)";
+        infografiaInput.value = "";
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = function(){
+      imgHint.textContent = "No se pudo leer el archivo. Intenta de nuevo.";
+      imgHint.style.color = "var(--danger)";
+      infografiaInput.value = "";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  removeImgBtn.addEventListener("click", resetInfografia);
+  infografiaRefs.addEventListener("input", checkInfografiaDone);
+
+  var copyPromptBtn = document.getElementById("copyPromptBtn");
+  copyPromptBtn.addEventListener("click", function(){
+    var text = copyPromptBtn.getAttribute("data-copy");
+    var done = function(){
+      var original = copyPromptBtn.textContent;
+      copyPromptBtn.textContent = "¡Copiado!";
+      copyPromptBtn.classList.add("copied");
+      setTimeout(function(){ copyPromptBtn.textContent = original; copyPromptBtn.classList.remove("copied"); }, 1400);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){
+        copyPromptBtn.textContent = "Copia manual";
+      });
+    } else {
+      copyPromptBtn.textContent = "Copia manual";
+    }
+  });
+
   /* ---------- evidence / PDF ---------- */
   var statusLine = document.getElementById("statusLine");
 
@@ -586,6 +752,17 @@
     var matricula = document.getElementById("matricula").value.trim();
     if(!matricula){
       statusLine.textContent = "Escribe tu matrícula antes de generar el PDF.";
+      statusLine.style.color = "#C0392B";
+      return;
+    }
+    if(!infografiaDataURL){
+      statusLine.textContent = "Sube tu infografía antes de generar el PDF — es parte de la evidencia de hoy.";
+      statusLine.style.color = "#C0392B";
+      return;
+    }
+    var infografiaRefsVal = document.getElementById("infografiaRefs").value.trim();
+    if(!infografiaRefsVal){
+      statusLine.textContent = "Agrega tus referencias en formato APA 7 antes de generar el PDF.";
       statusLine.style.color = "#C0392B";
       return;
     }
@@ -643,6 +820,36 @@
       var usoIA = document.getElementById("usoIA").checked;
       doc.setFont("helvetica","italic"); doc.setFontSize(9);
       doc.text("Declaratoria de uso de IAG (estudiante): " + (usoIA ? "Sí usó IA generativa como apoyo." : "No declaró uso de IA generativa."), left, y);
+
+      // Página nueva: infografía con IA + referencias APA 7
+      doc.addPage();
+      var pageWidth = doc.internal.pageSize.getWidth();
+      var pageHeight = doc.internal.pageSize.getHeight();
+      var iy = 56;
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(13);
+      doc.text("Infografía con IA — el viaje de mi app por TCP/IP", left, iy); iy += 22;
+
+      var maxImgWidth = pageWidth - left*2;
+      var maxImgHeight = 380;
+      var imgW = maxImgWidth;
+      var imgH = imgW / infografiaAspect;
+      if(imgH > maxImgHeight){
+        imgH = maxImgHeight;
+        imgW = imgH * infografiaAspect;
+      }
+      doc.addImage(infografiaDataURL, "JPEG", left, iy, imgW, imgH);
+      iy += imgH + 22;
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(11);
+      var refsWrapped = doc.splitTextToSize(infografiaRefsVal, maxImgWidth);
+      if(iy + 16 + refsWrapped.length*13 > pageHeight - 56){
+        doc.addPage();
+        iy = 56;
+      }
+      doc.text("Referencias (APA 7.ª ed.)", left, iy); iy += 16;
+      doc.setFont("helvetica","normal"); doc.setFontSize(10);
+      doc.text(refsWrapped, left, iy);
 
       var filename = "Sesion03_Protocolos_" + matricula.replace(/[^a-zA-Z0-9]/g,"") + ".pdf";
       doc.save(filename);
