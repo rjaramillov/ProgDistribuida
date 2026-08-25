@@ -198,7 +198,18 @@
   .trace-step b{color:var(--navy);}
 
   /* transition / cierre */
-  .cta-box{background:#12345C; border-radius:12px; padding:2vh 2vw; margin-top:3vh; font-size:clamp(17px,1.1vw,19px);}
+  .cta-box{background:#12345C; color:#fff; border-radius:12px; padding:2vh 2vw; margin-top:3vh; font-size:clamp(17px,1.1vw,19px);}
+  .prompt-preview{
+    position:relative; background:#F7F9FC; border:1.5px solid var(--blue); border-left:5px solid var(--blue);
+    border-radius:10px; padding:2vh 1.6vw 1.8vh; margin-top:2.4vh;
+    font-family:'IBM Plex Mono', monospace; font-size:clamp(13px,.85vw,15px); line-height:1.6; color:var(--ink); max-width:52vw;
+  }
+  .prompt-label{
+    display:inline-block; background:var(--blue); color:#fff; font-family:'Space Grotesk', system-ui, sans-serif;
+    font-size:clamp(11px,.75vw,12px); font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:.5vh 1vw; border-radius:999px; margin-bottom:1.3vh;
+  }
+  .prompt-preview p{margin:0;}
   .check-list{margin-top:2vh;}
   .check-item{display:flex; align-items:center; gap:1vw; margin-bottom:1.6vh; font-size:clamp(17px,1.2vw,19px);}
   .check-dot{width:clamp(18px,1.4vw,22px); height:clamp(18px,1.4vw,22px); border-radius:50%; background:var(--teal); flex-shrink:0;}
@@ -446,20 +457,35 @@
     <button class="cite-btn" data-cite="braden,vansteen" data-cite-term="Fuentes de este recorrido">(Braden, 1989; Van Steen y Tanenbaum, 2023)</button>
   </section>
 
+  <!-- 8: el reto -->
+  <section class="slide light" data-index="8" data-note="Este reto no es opcional — es parte de la evidencia de hoy. Léeles en voz alta el punto de uso responsable de la IA: investigar, verificar y citar, no solo generar. Recuérdales que se apoyen en lo que vieron en 'Sigue el paquete' y 'Viaje del Paquete'.">
+    <span class="eyebrow">El reto de hoy</span>
+    <h2 class="s-title">El viaje de tu app favorita por TCP/IP</h2>
+    <ul class="bullets">
+      <li>Elige tu aplicación favorita — la que uses todos los días, no tiene que ser una de las que vimos hoy.</li>
+      <li>Usa IA generativa para construir una infografía de una sola página que muestre el encapsulamiento: cómo tus datos se envuelven capa por capa hasta salir, y se desenvuelven al llegar.</li>
+      <li>Investiga, verifica y valida lo que la IA te dé — no te quedes con la primera respuesta sin confirmarla.</li>
+      <li>Si usas conceptos o imágenes de otras fuentes, referéncialos en formato APA 7.ª ed.</li>
+    </ul>
+    <div class="prompt-preview"><span class="prompt-label">💬 Prompt sugerido</span><p>Ayúdame a explicar cómo viaja un mensaje o una acción en [nombre de tu app favorita] a través de las 4 capas del modelo TCP/IP, usando una infografía de una sola página. Muestra el encapsulamiento: cómo los datos se van envolviendo en cada capa (Aplicación → Transporte → Internet → Acceso a la red) hasta convertirse en señales físicas, y qué pasa al revés cuando el mensaje llega a su destino. Básate en información verificable — si no estás seguro de un dato, dímelo en vez de inventarlo.</p></div>
+    <div class="cta-box">La suben como evidencia dentro del artefacto de hoy, junto con todo lo demás — la van a encontrar en el bloque 07.</div>
+  </section>
+
   <!-- 9: transition -->
-  <section class="slide dark" data-index="8" data-note="Comparte el enlace o QR de Classroom aquí. Confirma que todos pueden acceder antes de que empiecen a trabajar solos.">
+  <section class="slide dark" data-index="9" data-note="Comparte el enlace o QR de Classroom aquí. Confirma que todos pueden acceder antes de que empiecen a trabajar solos.">
     <span class="eyebrow">Ahora les toca a ustedes</span>
     <h2 class="s-title">Actividad interactiva: arma el paquete</h2>
     <ul class="bullets" style="color:#D7E3F5;">
       <li>Exploren las 4 capas del modelo TCP/IP a su ritmo</li>
       <li>Ordenen los pasos de la encapsulación</li>
       <li>Respondan el quiz y clasifiquen protocolos reales</li>
+      <li>Generen su infografía con IA (con sus referencias APA 7) y súbanla como evidencia</li>
     </ul>
-    <div class="cta-box">Accedan desde Classroom → Sesión 03 — Protocolos &nbsp;·&nbsp; ~35-40 min, a su propio ritmo</div>
+    <div class="cta-box">Accedan desde Classroom → Sesión 03 — Protocolos &nbsp;·&nbsp; ~50-60 min, a su propio ritmo</div>
   </section>
 
   <!-- 10: cierre -->
-  <section class="slide light" data-index="9" data-note="Usa esta lista para pasar lista de evidencia al final de la sesión, antes de la reflexión grupal de cierre.">
+  <section class="slide light" data-index="10" data-note="Usa esta lista para pasar lista de evidencia al final de la sesión, antes de la reflexión grupal de cierre.">
     <svg class="deco-nodes" viewBox="0 0 400 300" aria-hidden="true" style="opacity:.55;">
       <g stroke="#C6D2E3" stroke-width="1.5">
         <line x1="200" y1="40" x2="200" y2="260"/>
@@ -483,7 +509,7 @@
   </section>
 
   <!-- 11: references -->
-  <section class="slide light" data-index="10" data-note="Slide de referencia — normalmente no se proyecta en clase, queda como trazabilidad académica (APA 7). Cada cita de la presentación remite aquí.">
+  <section class="slide light" data-index="11" data-note="Slide de referencia — normalmente no se proyecta en clase, queda como trazabilidad académica (APA 7). Cada cita de la presentación remite aquí.">
     <span class="eyebrow">Fuentes de esta sesión</span>
     <h2 class="s-title">Referencias (APA 7.ª ed.)</h2>
     <div class="ref-list" id="refList"></div>
