@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Puente a los Sockets · Repaso integrador TCP-IP · TCP/UDP · C/S · P2P</title>
+<style>
+:root{
+  --paper:#F6F1E6; --ink:#221E19; --line:#D8CFBC;
+  --app:#128C7E; --app-soft:#E7F5F0;
+  --tcp:#2E5CA6; --tcp-soft:#E3EDF5;
+  --udp:#C07A10; --udp-soft:#FBF0D3;
+  --cs:#6B4FA0; --cs-soft:#EEE8F8;
+  --p2p:#0C7C86; --p2p-soft:#E0F2F3;
+  --ok:#177A54; --ok-soft:#E4F4EC;
+  --bad:#B3402A; --bad-soft:#FBEAE8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none !important}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--ink);font-size:15px;line-height:1.55;
+  background:var(--paper);
+  background-image:linear-gradient(rgba(34,30,25,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,30,25,.045) 1px,transparent 1px);
+  background-size:26px 26px;min-height:100vh;padding:18px 16px 30px}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1100px;margin:0 auto}
+
+/* barra institucional */
+.inst-bar{display:flex;align-items:center;gap:14px;background:#FFFCF4;border:2.5px solid var(--ink);border-radius:14px;padding:10px 16px;margin:0 auto 14px;box-shadow:5px 5px 0 rgba(34,30,25,.15);flex-wrap:wrap}
+.inst-bar .logo-box{width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.inst-bar .inst-txt b{display:block;font-size:15px}
+.inst-bar .inst-txt small{display:block;color:#6A6152;font-size:12.5px}
+.inst-bar .chip{margin-left:auto;background:var(--app-soft);border:1.5px solid var(--app);font-size:11.5px;padding:4px 12px;border-radius:20px;font-weight:600}
+
+header{text-align:center;margin-bottom:14px}
+header h1{font-size:clamp(20px,3.4vw,30px);letter-spacing:-.5px}
+header h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:2px 10px;border-radius:8px;transform:rotate(-2deg);display:inline-block}
+header p{color:#6A6152;margin-top:6px;font-size:14px;max-width:70ch;margin-left:auto;margin-right:auto}
+
+/* navegación de fases */
+.phase-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 auto 16px}
+@media(max-width:700px){.phase-nav{grid-template-columns:1fr}}
+.pnav{border:2.5px solid var(--ink);border-radius:12px;background:#FFFCF4;padding:10px 12px;text-align:left;font-weight:700;font-size:13.5px;transition:transform .15s}
+.pnav small{display:block;font-weight:400;color:#6A6152;font-size:11.5px;margin-top:2px}
+.pnav:hover{transform:translateY(-2px)}
+.pnav.on{background:var(--ink);color:var(--paper)}
+.pnav.on small{color:#D8CFBC}
+
+.panel{background:#FFFCF4;border:2.5px solid var(--ink);border-radius:16px;padding:18px 20px;box-shadow:5px 5px 0 rgba(34,30,25,.15);margin-bottom:14px}
+.panel h2{font-size:17px;margin-bottom:4px}
+.panel h2 small{color:#6A6152;font-weight:400;font-size:13px}
+.panel .lead{font-size:14px;color:#4A4238;margin:6px 0 14px;max-width:75ch}
+.reveal{animation:rv .4s ease}
+@keyframes rv{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* tarjetas de elección */
+.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.choice{border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:14px;text-align:left;position:relative;transition:transform .15s}
+.choice .ico{font-size:28px;display:block;margin-bottom:4px}
+.choice b{display:block;font-size:14.5px}
+.choice small{display:block;color:#6A6152;font-size:12px;margin-top:4px}
+.choice:hover{transform:translateY(-3px)}
+.choice[aria-pressed="true"]{box-shadow:4px 4px 0 rgba(34,30,25,.25)}
+.choice[aria-pressed="true"]::after{content:"✓";position:absolute;top:8px;right:10px;background:var(--ok);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.choice.cs[aria-pressed="true"]{background:var(--cs-soft)}
+.choice.p2p[aria-pressed="true"]{background:var(--p2p-soft)}
+.choice.tcp[aria-pressed="true"]{background:var(--tcp-soft)}
+.choice.udp[aria-pressed="true"]{background:var(--udp-soft)}
+
+/* simulador de arquitectura */
+.simgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:700px){.simgrid{grid-template-columns:1fr}}
+.simbox{border:2.5px solid var(--ink);border-radius:12px;padding:12px;background:#fff}
+.simbox h4{font-size:14px;margin-bottom:2px}
+.simbox .sub{font-size:11.5px;color:#6A6152;margin-bottom:10px}
+.cli{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cli span{font-size:12px;width:66px;flex-shrink:0}
+.bar{flex:1;height:16px;border:1.5px solid var(--ink);border-radius:8px;background:#F6F1E6;overflow:hidden}
+.bar i{display:block;height:100%;width:0%;background:var(--tcp);transition:width .12s linear}
+.simbox.p2pbox .bar i{background:var(--p2p)}
+.simstat{font-size:12px;margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;min-height:34px}
+.bigbtn{background:var(--app);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-size:15px;font-weight:700;box-shadow:4px 4px 0 rgba(34,30,25,.25);transition:transform .15s}
+.bigbtn:hover{transform:translateY(-2px)}
+.bigbtn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.midbtn{background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700}
+
+/* pista de demo */
+.track{position:relative;height:86px;border:2px dashed var(--line);border-radius:10px;margin:12px 0 6px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(34,30,25,.08) 34px 36px),#fff}
+.node{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:20px;background:#fff;z-index:2}
+.node.src{left:8px}.node.dst{right:8px}
+.pkt{position:absolute;top:50%;left:58px;transform:translate(-50%,-50%);z-index:3;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-family:monospace;font-weight:700;font-size:12.5px;background:var(--tcp);color:#fff;white-space:nowrap;transition:left .7s linear,top .4s,opacity .4s,transform .4s}
+.pkt.udp{background:var(--udp)}
+.pkt.ctl{font-size:11px;background:var(--tcp)}
+.pkt.lost{top:calc(50% + 30px);opacity:0;transform:translate(-50%,-50%) rotate(55deg)}
+.simresult{font-size:13.5px;background:var(--ink);color:#E8F1FA;border-radius:10px;padding:10px 14px;margin-top:8px}
+
+/* encapsulación */
+.encap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.encap button{border:2px solid var(--ink);border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;background:#fff}
+.encap button.on{background:var(--ink);color:var(--paper)}
+.segbox{border:2px solid var(--ink);border-radius:10px;overflow:hidden;max-width:460px}
+.segbox .h{font-size:11px;padding:4px 10px;color:#fff;display:none;font-family:monospace}
+.segbox .h.show{display:block}
+.segbox .h.wifi{background:var(--udp)}.segbox .h.ip{background:var(--tcp)}.segbox .h.tcp{background:var(--bad)}
+.segbox .data{padding:8px 10px;font-size:13.5px;background:#fff}
+
+/* veredicto diseño */
+.design{border:3px solid var(--ink);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:5px 5px 0 rgba(34,30,25,.2)}
+.design h3{font-size:18px;margin-bottom:6px}
+.design p{font-size:14px;margin-bottom:8px}
+details.refl{border:2px dashed var(--ink);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:13.5px;background:#fff}
+details.refl summary{font-weight:700;cursor:pointer}
+details.refl p{margin-top:6px}
+
+/* FASE 2 */
+.scorebar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:#fff;border:2.5px solid var(--ink);border-radius:12px;padding:10px 14px}
+.scorebar b{font-size:18px}
+.casecard{border:2.5px solid var(--ink);border-radius:14px;background:#fff;padding:14px 16px;margin-bottom:12px}
+.casecard .ch{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.casecard .ch .ic{font-size:28px}
+.casecard .ch b{font-size:15px}
+.casecard .ch small{display:block;color:#6A6152;font-size:12px}
+.optrow{margin-bottom:8px}
+.optrow .lbl{font-size:12px;font-weight:700;color:#6A6152;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block}
+.optbtns{display:flex;gap:8px;flex-wrap:wrap}
+.opt{border:2px solid var(--ink);border-radius:10px;padding:7px 14px;font-size:13.5px;font-weight:600;background:#FFFCF4}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.casefb{border-radius:10px;padding:10px 12px;font-size:13.5px;margin-top:10px;display:none}
+.casefb.show{display:block;animation:rv .3s}
+.casefb.good{background:var(--ok-soft);border:2px solid var(--ok)}
+.casefb.half{background:var(--udp-soft);border:2px solid var(--udp)}
+.casefb.bad{background:var(--bad-soft);border:2px solid var(--bad)}
+
+/* FASE 3 */
+.qcard{border:2.5px solid var(--ink);border-radius:14px;background:#fff;padding:16px;margin-bottom:12px}
+.qcard .qtop{display:flex;gap:10px;align-items:flex-start}
+.qcard .qnum{background:var(--ink);color:var(--paper);border-radius:9px;min-width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.qcard .qtxt{font-size:15px;font-weight:600}
+.qcard .theme{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6A6152;margin:6px 0 10px;display:block}
+.confrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.conf{border:2px solid var(--ink);border-radius:10px;padding:6px 12px;font-size:13px;background:#FFFCF4}
+.conf[aria-pressed="true"]{background:var(--udp);color:#fff}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts button{border:2px solid var(--ink);border-radius:10px;padding:9px 14px;font-size:14px;text-align:left;background:#FFFCF4;opacity:.45;pointer-events:none;transition:opacity .2s}
+.opts.open button{opacity:1;pointer-events:auto}
+.opts button:hover{background:var(--tcp-soft)}
+.qfb{margin-top:10px;border-radius:10px;padding:10px 12px;font-size:13.5px;display:none}
+.qfb.show{display:block;animation:rv .3s}
+.qfb.good{background:var(--ok-soft);border:2px solid var(--ok)}
+.qfb.bad{background:var(--bad-soft);border:2px solid var(--bad)}
+.qfb .cal{font-size:12px;margin-top:6px;font-weight:700}
+
+/* matriz metacognitiva */
+.matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
+@media(max-width:620px){.matrix{grid-template-columns:1fr}}
+.mcell{border:2.5px solid var(--ink);border-radius:12px;padding:12px;background:#fff}
+.mcell .big{font-size:30px;font-weight:800}
+.mcell b{display:block;font-size:13.5px;margin-top:2px}
+.mcell small{font-size:12px;color:#6A6152;display:block;margin-top:3px}
+.mcell.domin{background:var(--ok-soft)}
+.mcell.sub{background:var(--tcp-soft)}
+.mcell.ilu{background:var(--bad-soft)}
+.mcell.hueco{background:var(--udp-soft)}
+.recos{font-size:13.5px;border:2px dashed var(--ink);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:12px}
+.recos li{margin:6px 0 6px 18px}
+
+/* mapa syscalls */
+.sysmap{display:flex;flex-direction:column;gap:8px}
+.sysitem{border:2.5px solid var(--ink);border-radius:12px;background:#fff;overflow:hidden}
+.sysitem summary{padding:12px 14px;cursor:pointer;font-weight:700;font-size:14.5px;list-style:none;display:flex;gap:10px;align-items:center}
+.sysitem summary::-webkit-details-marker{display:none}
+.sysitem summary .fn{font-family:Consolas,monospace;background:var(--ink);color:#9FE8B8;border-radius:8px;padding:3px 10px;font-size:13.5px}
+.sysitem summary .who{margin-left:auto;font-size:10.5px;border:1.5px solid var(--line);border-radius:20px;padding:2px 9px;color:#6A6152;font-weight:600}
+.sysbody{padding:0 14px 14px;font-size:13.5px;border-top:1px dashed var(--line);padding-top:10px}
+.sysbody .link{display:inline-block;margin-top:6px;background:var(--app-soft);border:1.5px solid var(--app);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:600}
+
+/* checklist + reflexión + evidencia */
+.check{border:2.5px solid var(--ink);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:12px;font-size:14px}
+.check div{display:flex;gap:10px;align-items:flex-start;margin:7px 0}
+.check .st{font-size:17px}
+textarea{width:100%;border:2px solid var(--ink);border-radius:10px;padding:10px;font-family:inherit;font-size:13.5px;min-height:70px;resize:vertical;background:#fff}
+
+/* panel de evidencia */
+.evid-box{margin:12px 0;padding:12px 14px;border:2px dashed var(--ink);border-radius:12px;background:#fff}
+.evid-box label{font-size:13.5px;font-weight:700;display:block;margin-bottom:8px}
+.evid-row{display:flex;gap:8px;flex-wrap:wrap}
+.evid-row input{border:2px solid var(--ink);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:13.5px}
+.evid-row input:first-child{flex:1;min-width:180px}
+.evid-row input:last-child{flex:0 1 140px}
+.evid-hint{font-size:12.5px;color:#6A6152;margin-top:8px}
+.evid-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:10px;padding:10px 18px;font-size:14px;z-index:99;display:none}
+.toast.show{display:block;animation:rv .3s}
+
+/* footer */
+.site-footer{max-width:1100px;margin:28px auto 0;background:var(--ink);color:var(--paper);border-radius:16px;padding:18px 22px;box-shadow:6px 6px 0 rgba(34,30,25,.2)}
+.ia-note{display:flex;gap:14px;align-items:flex-start;justify-content:center;max-width:880px;margin:0 auto;font-size:13.5px;line-height:1.65;text-align:left}
+.ia-note .ico{font-size:24px;flex-shrink:0}
+.ia-note b{color:#FFD98A}
+.site-footer .fine{margin-top:13px;padding-top:11px;border-top:1px dashed rgba(246,241,230,.35);font-size:11.5px;color:rgba(246,241,230,.65);text-align:center}
+</style>
+</head>
+<body>
+
+<!-- ══════ BARRA INSTITUCIONAL ══════ -->
+<div class="inst-bar" style="max-width:1100px">
+  <div class="logo-box">
+    <!-- ⚠️ Reemplaza este SVG de marcador por el logo oficial UCol (el base64 de tus slides) -->
+    <svg viewBox="0 0 80 80" width="54" height="54" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Universidad de Colima">
+      <circle cx="40" cy="40" r="35" fill="#FFFCF4" stroke="#6A6152" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <text x="40" y="38" text-anchor="middle" font-family="Arial" font-size="14" font-weight="900" fill="#221E19">LOGO</text>
+      <text x="40" y="53" text-anchor="middle" font-family="Arial" font-size="11" fill="#6A6152">UCol</text>
+    </svg>
+  </div>
+  <div class="inst-txt">
+    <b>Universidad de Colima</b>
+    <small>Facultad de Telemática · Materia: Programación Distribuida</small>
+  </div>
+  <span class="chip">Previo a la práctica de Sockets</span>
+</div>
+
+<header>
+  <h1>🌉 <em>El Puente a los Sockets</em></h1>
+  <p>Todo lo que viste —modelo TCP/IP, TCP vs UDP, cliente-servidor y P2P— converge aquí. Demuestra que lo dominas… y descubre qué crees saber pero no sabes. <b>Al terminar estarás listo para la práctica.</b></p>
+</header>
+
+<div class="wrap">
+
+<div class="phase-nav" style="max-width:1100px">
+  <button class="pnav on" data-ph="1" type="button">1 · Diseña tu app<small>Integra los 4 temas</small></button>
+  <button class="pnav" data-ph="2" type="button">2 · Apps reales<small>6 casos, 12 decisiones</small></button>
+  <button class="pnav" data-ph="3" type="button">3 · ¿Listo para sockets?<small>Diagnóstico metacognitivo</small></button>
+</div>
+
+<!-- ══════════════ FASE 1 ══════════════ -->
+<section id="phase1">
+  <div class="panel">
+    <h2>🎯 Misión: eres el arquitecto de <small>«ColiShare»</small></h2>
+    <p class="lead">La Facultad quiere una app para que los estudiantes compartan apuntes (archivos de ~50 MB).
+    Tomarás <b>3 decisiones de diseño</b> — exactamente las que tomó el equipo de cualquier app que usas a diario.</p>
+
+    <h2 style="font-size:15px">Decisión 1 · Arquitectura: ¿un servidor central o entre pares?</h2>
+    <p class="lead" style="margin-bottom:8px">Primero <b>observa la simulación</b>: las mismas 6 laptops descargando el mismo archivo…</p>
+    <button class="bigbtn" id="simBtn" type="button">▶ Simular ambas arquitecturas</button>
+    <div class="simgrid" id="simgrid" hidden>
+      <div class="simbox">
+        <h4>🖥️ Cliente-Servidor</h4>
+        <div class="sub">Todas las descargas salen del servidor de la Facultad</div>
+        <div id="csClients"></div>
+        <div class="simstat" id="csStat">…</div>
+      </div>
+      <div class="simbox p2pbox">
+        <h4>🤝 P2P (peer-to-peer)</h4>
+        <div class="sub">Cada laptop que descarga también comparte lo que ya tiene</div>
+        <div id="p2pClients"></div>
+        <div class="simstat" id="p2pStat">…</div>
+      </div>
+    </div>
+    <div class="choice-grid" id="archChoice" hidden>
+      <button class="choice cs" data-v="cs" aria-pressed="false" type="button"><span class="ico">🖥️</span><b>Cliente-Servidor</b><small>Control, seguridad y simplicidad… pagando el servidor central</small></button>
+      <button class="choice p2p" data-v="p2p" aria-pressed="false" type="button"><span class="ico">🤝</span><b>P2P</b><small>Cada usuario aporta recursos: se escala solo… sin control central</small></button>
+    </div>
+  </div>
+
+  <div class="panel" id="stepB" hidden>
+    <h2>Decisión 2 · Transporte: ¿TCP o UDP para los fragmentos del archivo?</h2>
+    <p class="lead">El archivo viaja cortado en 8 fragmentos por una red con <b>25% de pérdida</b>. Elige y observa:</p>
+    <div class="choice-grid" id="protoChoice">
+      <button class="choice tcp" data-v="tcp" aria-pressed="false" type="button"><span class="ico">🐢</span><b>TCP — confiable</b><small>Confirma cada fragmento (ACK) y reenvía lo perdido</small></button>
+      <button class="choice udp" data-v="udp" aria-pressed="false" type="button"><span class="ico">🐇</span><b>UDP — veloz</b><small>Dispara y sigue: lo que se pierde, se perdió</small></button>
+    </div>
+    <div class="track" id="demoTrack" hidden>
+      <div class="node src">📡</div>
+      <div class="node dst">📥</div>
+    </div>
+    <div class="simresult" id="demoResult" hidden></div>
+  </div>
+
+  <div class="panel" id="stepC" hidden>
+    <h2>Decisión 3 · Verificación: tu paquete por las 4 capas</h2>
+    <p class="lead">Sin importar lo que elegiste, tu fragmento <b>vuelve a vestirse</b> al bajar por el modelo TCP/IP. Recorre las capas de arriba hacia abajo:</p>
+    <div class="encap">
+      <button class="on" data-l="1" type="button">4 · Aplicación</button>
+      <button data-l="2" type="button">3 · Transporte</button>
+      <button data-l="3" type="button">2 · Internet</button>
+      <button data-l="4" type="button">1 · Acceso a red</button>
+    </div>
+    <div class="segbox">
+      <div class="h wifi">📶 WiFi — ondas de radio</div>
+      <div class="h ip">📍 IP 148.202.1.50 → 148.202.1.99</div>
+      <div class="h tcp" id="encapTrans">🔢 TCP · SEQ 3 · ACK</div>
+      <div class="data">📄 Fragmento 3 de 8 del archivo «apuntes-redes.pdf»</div>
+    </div>
+    <p style="font-size:13px;color:#6A6152;margin-top:8px" id="encapNote">ColiShare le entregó el fragmento a TCP. Toca la siguiente capa…</p>
+    <button class="midbtn" id="seeDesign" type="button" style="margin-top:10px" hidden>🏗️ Ver mi diseño completo</button>
+  </div>
+
+  <div class="design" id="designVerdict" hidden></div>
+</section>
+
+<!-- ══════════════ FASE 2 ══════════════ -->
+<section id="phase2" hidden>
+  <div class="scorebar">
+    <span>Decisiones correctas: <b id="scoreF2">0</b>/12</span>
+    <span id="scoreMsg" style="color:#6A6152;font-size:13px">Responde los 6 casos para liberar la Fase 3</span>
+    <button class="midbtn" id="goF3" type="button" style="margin-left:auto" hidden>➜ Ir a Fase 3</button>
+  </div>
+  <div id="cases"></div>
+</section>
+
+<!-- ══════════════ FASE 3 ══════════════ -->
+<section id="phase3" hidden>
+  <div class="panel">
+    <h2>🧠 Diagnóstico con calibración de confianza</h2>
+    <p class="lead">8 preguntas de toda la unidad. <b>Primero</b> marca qué tan seguro estás de acertar (sé honesto — aquí no se califica la honestidad, se agradece), <b>después</b> responde. El objetivo no es el puntaje: es descubrir <b>qué tan bien conoces tu propio conocimiento</b> antes de tocar un socket.</p>
+  </div>
+  <div id="quiz"></div>
+  <div id="quizResults" hidden>
+    <div class="panel">
+      <h2>🗺️ Tu mapa metacognitivo</h2>
+      <div class="matrix" id="matrix"></div>
+      <div class="recos" id="recos"></div>
+    </div>
+    <div class="panel">
+      <h2>🔌 El mapa que necesitas mañana: syscall ↔ concepto</h2>
+      <p class="lead">Cada llamada que harás en la práctica <b>activa algo que ya viste</b>. Despliega cada una antes de entrar al laboratorio:</p>
+      <div class="sysmap">
+        <details class="sysitem"><summary><span class="fn">socket()</span> Crear el punto de comunicación <span class="who">cliente + servidor</span></summary>
+          <div class="sysbody">«Sistema operativo, dame un extremo de comunicación». Es pedirle acceso a la <b>capa de Transporte</b>: sin esto no hay TCP ni UDP.<div class="link">Concepto: modelo TCP/IP · capa 3</div></div></details>
+        <details class="sysitem"><summary><span class="fn">bind()</span> Asociar IP + puerto <span class="who">principalmente servidor</span></summary>
+          <div class="sysbody">«Este es mi número»: fija la dirección IP y el puerto donde el servidor escuchará. ¡Son las mismas direcciones que la <b>capa Internet</b> escribe en cada paquete!<div class="link">Concepto: direcciones IP · puertos</div></div></details>
+        <details class="sysitem"><summary><span class="fn">listen()</span> Anunciarse como servidor <span class="who">servidor</span></summary>
+          <div class="sysbody">«Estoy abierto a conexiones» y arma la cola de espera. Aquí nace formalmente tu rol en la <b>arquitectura cliente-servidor</b>: alguien espera, alguien pide.<div class="link">Concepto: arquitectura C/S</div></div></details>
+        <details class="sysitem"><summary><span class="fn">accept()</span> Recibir una conexión <span class="who">servidor</span></summary>
+          <div class="sysbody">Contesta el <b>handshake</b> SYN → SYN-ACK → ACK y crea la conexión con ese cliente. Sin handshake no hay conexión… por eso <b>accept() no existe en UDP</b>.<div class="link">Concepto: TCP orientado a conexión</div></div></details>
+        <details class="sysitem"><summary><span class="fn">connect()</span> Iniciar el handshake <span class="who">cliente</span></summary>
+          <div class="sysbody">El cliente manda el SYN y espera el SYN-ACK: los 3 apretones de manos que viste en la carrera. La conexión queda establecida y confiable.<div class="link">Concepto: TCP · handshake de 3 pasos</div></div></details>
+        <details class="sysitem"><summary><span class="fn">send() / recv()</span> Enviar y recibir fiable <span class="who">TCP</span></summary>
+          <div class="sysbody">Con la garantía incluida: ACKs, retransmisión, orden por SEQ. Es por esto que tus mensajes de WhatsApp llegan completos (recuerda las ✓✓ del primer widget).<div class="link">Concepto: fiabilidad TCP</div></div></details>
+        <details class="sysitem"><summary><span class="fn">sendto() / recvfrom()</span> Disparar sin conexión <span class="who">UDP</span></summary>
+          <div class="sysbody">UDP puro: envía el datagrama con su destino cada vez, sin saludar ni confirmar — como la liebre de la carrera. Si se pierde, <b>tu aplicación</b> decide qué hacer.<div class="link">Concepto: UDP dispara y olvida</div></div></details>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>📋 ¿Estoy listo para la práctica?</h2>
+      <div class="check" id="readyCheck"></div>
+      <p style="font-size:13.5px;font-weight:700;margin-bottom:6px">✍️ Cierre metacognitivo — en una frase: ¿qué concepto te quedó más confuso y qué harás para aclararlo antes del laboratorio?</p>
+      <textarea id="metacogTxt" placeholder="Ej.: «Todavía no me claro por qué accept() no existe en UDP; voy a releer el handshake y repasar la carrera TCP vs UDP antes de la práctica…»"></textarea>
+
+      <!-- ══ PANEL DE EVIDENCIA PARA CLASSROOM ══ -->
+      <div class="evid-box">
+        <label for="stName">👤 Tus datos para la evidencia:</label>
+        <div class="evid-row">
+          <input id="stName" type="text" placeholder="Nombre completo" autocomplete="name">
+          <input id="stMat" type="text" placeholder="Matrícula">
+        </div>
+        <p class="evid-hint">📎 Genera tu evidencia y <b>adjúntala en la tarea de Google Classroom</b>. El PDF incluye el detalle de tus 8 respuestas, tu reflexión de cierre y una firma de verificación — sin nombre y reflexión no se genera el archivo.</p>
+        <div class="evid-btns">
+          <button class="bigbtn" id="pdfBtn" type="button" style="background:var(--ok)">📄 Descargar evidencia (PDF)</button>
+          <button class="bigbtn" id="dlBtn" type="button" style="background:var(--tcp)">⬇️ Descargar evidencia (.txt)</button>
+          <button class="bigbtn" id="copyBtn" type="button" style="background:var(--ink)">📋 Copiar resultado</button>
+        </div>
+      </div>
+
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;color:#6A6152">Ver mi resumen en texto (para copiar manualmente)</summary>
+        <pre id="summaryPre" style="font-size:11.5px;background:var(--ink);color:#9FE8B8;padding:12px;border-radius:10px;margin-top:8px;white-space:pre-wrap;overflow-x:auto"></pre>
+      </details>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="site-footer">
+  <div class="ia-note">
+    <span class="ico">🤖</span>
+    <div><b>Transparencia en el desarrollo:</b> Material preparado por el profesor con apoyo de <b>IA generativa</b>, revisado antes de su uso en clase, en apego al <b>Acuerdo No. 23/2024</b> de los Lineamientos institucionales para el uso de IAG — <b>Universidad de Colima, Facultad de Telemática</b>.</div>
+  </div>
+  <div class="fine">Widget educativo interactivo · «El Puente a los Sockets: repaso integrador de TCP/IP, TCP vs UDP, Cliente-Servidor y P2P» · Materia: Programación Distribuida · Facultad de Telemática</div>
+</footer>
+
+<div class="toast" id="toast">✓ Copiado al portapapeles</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ════════ NAVEGACIÓN DE FASES ════════ */
+document.querySelectorAll(".pnav").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".pnav").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    ["phase1","phase2","phase3"].forEach((id,i)=>$(id).hidden=(b.dataset.ph!=String(i+1)));
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+});
+
+/* ════════ FASE 1A · SIMULADOR C/S vs P2P ════════ */
+const ARCH={arch:null,proto:null};
+function makeClients(container,n){
+  container.innerHTML="";
+  const arr=[];
+  for(let i=0;i<n;i++){
+    const d=document.createElement("div");d.className="cli";
+    d.innerHTML='<span>💻 Alumno '+(i+1)+'</span><div class="bar"><i></i></div>';
+    container.appendChild(d);
+    arr.push(d.querySelector("i"));
+  }
+  return arr;
+}
+ $("simBtn").onclick=async()=>{
+  $("simBtn").disabled=true;
+  $("simgrid").hidden=false;
+  const cs=makeClients($("csClients"),6), p2p=makeClients($("p2pClients"),6);
+  let csP=[0,0,0,0,0,0], p2pP=[0,0,0,0,0,0], tick=0;
+  const NEED=100;
+  while((csP.some(v=>v<NEED)||p2pP.some(v=>v<NEED))&&tick<160){
+    tick++;
+    const csAct=csP.filter(v=>v<NEED).length||1;
+    csP=csP.map(v=>Math.min(NEED,v+(v<NEED?24/csAct:0)));
+    const done=p2pP.filter(v=>v>=NEED).length;
+    const cap=24+done*14;
+    const p2pAct=p2pP.filter(v=>v<NEED).length||1;
+    p2pP=p2pP.map(v=>Math.min(NEED,v+(v<NEED?cap/p2pAct:0)));
+    cs.forEach((b,i)=>b.style.width=(csP[i]/NEED*100)+"%");
+    p2p.forEach((b,i)=>b.style.width=(p2pP[i]/NEED*100)+"%");
+    $("csStat").innerHTML="Servidor de la Facultad: <b>saturado al 100%</b> de su ancho de banda — 1 solo cuello de botella. Ticks: "+tick;
+    $("p2pStat").innerHTML="Ancho de banda disponible: <b>"+cap+" u/tick</b> ("+done+" pares compartiendo y creciendo) — la red <b>se escala sola</b>. Ticks: "+tick;
+    await sleep(130);
+  }
+  $("csStat").innerHTML+=" — <b>⏱ terminó en "+tick+" ticks</b>";
+  $("p2pStat").innerHTML+=" — <b>⏱ terminó en "+tick+" ticks</b>";
+  $("archChoice").hidden=false;
+  $("archChoice").classList.add("reveal");
+  $("simBtn").textContent="↺ Simular de nuevo";
+  $("simBtn").disabled=false;
+};
+document.querySelectorAll("#archChoice .choice").forEach(b=>{
+  b.onclick=()=>{
+    ARCH.arch=b.dataset.v;
+    document.querySelectorAll("#archChoice .choice").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    $("stepB").hidden=false;$("stepB").classList.add("reveal");
+    $("stepB").scrollIntoView({behavior:"smooth",block:"center"});
+  };
+});
+
+/* ════════ FASE 1B · DEMO TCP/UDP ════════ */
+const LOST=[2,5,7];
+document.querySelectorAll("#protoChoice .choice").forEach(b=>{
+  b.onclick=async()=>{
+    ARCH.proto=b.dataset.v;
+    document.querySelectorAll("#protoChoice .choice").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    await runDemo(b.dataset.v);
+    $("stepC").hidden=false;$("stepC").classList.add("reveal");
+    $("stepC").scrollIntoView({behavior:"smooth",block:"center"});
+  };
+});
+async function runDemo(proto){
+  const track=$("demoTrack");track.hidden=false;
+  track.querySelectorAll(".pkt").forEach(p=>p.remove());
+  const res=$("demoResult");res.hidden=true;
+  const travel=650;
+  const fly=(txt,cls,lost)=>{
+    const p=document.createElement("div");
+    p.className="pkt "+(proto==="udp"?"udp":"")+" "+(cls||"");
+    p.textContent=txt;
+    p.style.left="58px";
+    track.appendChild(p);
+    void p.offsetWidth;
+    p.style.left="calc(100% - 58px)";
+    if(lost){setTimeout(()=>p.classList.add("lost"),travel*.5);setTimeout(()=>p.remove(),travel+900);}
+    else setTimeout(()=>p.remove(),travel+60);
+  };
+  let t=0, retries=0;
+  if(proto==="tcp"){
+    fly("SYN","ctl",false);await sleep(travel);
+    fly("SYN-ACK","ctl",false);await sleep(travel);
+    fly("ACK","ctl",false);await sleep(travel);
+    for(let i=1;i<=8;i++){
+      const lost=LOST.includes(i);
+      fly("F"+i,"",lost);
+      await sleep(travel);
+      if(!lost){fly("ACK "+i,"ctl",false);await sleep(420);}
+      else{await sleep(900);retries++;fly("F"+i+" 🔁","",false);await sleep(travel);fly("ACK "+i,"ctl",false);await sleep(420);}
+    }
+    t=(3*travel+8*(travel+420)+retries*(travel+900+420))/1000;
+    res.innerHTML="🐢 <b>TCP: 8/8 fragmentos entregados</b> — el archivo abre perfecto. Costo: "+retries+" reenvíos + "+(3+8+retries)+" mensajes de confirmación. Tiempo total: ~"+t.toFixed(1)+"s";
+  }else{
+    for(let i=1;i<=8;i++){
+      fly("F"+i,"",LOST.includes(i));
+      await sleep(260);
+    }
+    await sleep(travel);
+    t=(travel+260*7)/1000;
+    res.innerHTML="🐇 <b>UDP: 5/8 fragmentos entregados</b> — terminó antes ("+t.toFixed(1)+"s)… pero el archivo <b>no abre</b>: 3 fragmentos se perdieron y nadie los reenviará. Para compartir apuntes, la velocidad sin integridad no sirve.";
+  }
+  res.hidden=false;
+}
+
+/* ════════ FASE 1C · ENCAPSULACIÓN ════════ */
+const ENC_NOTES=[
+  "ColiShare le entregó el fragmento a TCP. Toca la siguiente capa…",
+  "🐢 <b>Transporte:</b> TCP corta el archivo, numera el fragmento (SEQ 3) y pedirá confirmación (ACK).",
+  "📍 <b>Internet:</b> IP agrega origen y destino. Con estas direcciones, cualquier router del mundo sabe hacia dónde mandarlo.",
+  "📶 <b>Acceso a red:</b> el WiFi convierte TODO en ondas de radio. ¡Este paquete completo viaja por el aire hasta el router!"
+];
+document.querySelectorAll(".encap button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".encap button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    const lv=+b.dataset.l;
+    $("encapTrans").textContent=ARCH.proto==="udp"?"🔢 UDP · datagrama 3 · puerto 5353":"🔢 TCP · SEQ 3 · ACK";
+    const box=b.closest(".panel").querySelector(".segbox");
+    box.querySelector(".h.tcp").classList.toggle("show",lv>=2);
+    box.querySelector(".h.ip").classList.toggle("show",lv>=3);
+    box.querySelector(".h.wifi").classList.toggle("show",lv>=4);
+    $("encapNote").innerHTML=ENC_NOTES[lv-1];
+    if(lv===4)$("seeDesign").hidden=false;
+  };
+});
+
+/* ════════ FASE 1 · VEREDICTO DE DISEÑO ════════ */
+ $("seeDesign").onclick=()=>{
+  const a=ARCH.arch,p=ARCH.proto;
+  const names={cs:"🖥️ Cliente-Servidor",p2p:"🤝 P2P",tcp:"🐢 TCP",udp:"🐇 UDP"};
+  let sim,verdict;
+  if(a==="cs"&&p==="tcp"){sim="Google Drive / OneDrive / Dropbox (en su núcleo)";
+    verdict="✅ <b>Diseño clásico y sólido.</b> El servidor central garantiza que el archivo esté siempre disponible, íntegro (TCP) y con control de accesos. El costo: la Facultad paga y mantiene ese servidor — y si se cae, se cae todo.";}
+  if(a==="cs"&&p==="udp"){sim="Streaming en vivo (tipo transmisión de eventos)";
+    verdict="⚠️ <b>Diseño arriesgado para archivos.</b> Con UDP, un fragmento perdido = archivo corrupto y ningún alumno puede abrir sus apuntes. Solo tendría sentido si en lugar de archivos transmitieras algo «en vivo» que caduca rápido.";}
+  if(a==="p2p"&&p==="tcp"){sim="BitTorrent / Blizzard Battle.net (distribución de juegos)";
+    verdict="✅ <b>Diseño escalable inteligente.</b> Mientras más estudiantes usan ColiShare, más ancho de banda hay (¡lo viste en la simulación!). TCP garantiza que cada pedazo llegue íntegro. El reto: no hay control central (¿quién vigila qué se comparte?).";}
+  if(a==="p2p"&&p==="udp"){sim="Algunas videollamadas y juegos (con «maquillaje» extra)";
+    verdict="⚠️ <b>Velocidad máxima, integridad cero.</b> Sin reenvíos, varios archivos llegarían incompletos. En la vida real, las apps P2P+UDP agregan sus PROPIAS correcciones por encima (redundancia, FEC) — es decir, reinventan partes de TCP a mano.";}
+  $("designVerdict").innerHTML=
+    '<h3>🏗️ Tu ColiShare: '+names[a]+' + '+names[p]+'</h3>'+
+    '<p><b>Se parece a:</b> '+sim+'</p><p>'+verdict+'</p>'+
+    '<details class="refl"><summary>💭 Reflexiona: ¿qué pasa con tu app si entran 5,000 estudiantes el día del examen?</summary><p>Con C/S: el servidor necesita escalar (más máquinas, más dinero) — ese es el trabajo de los ingenieros de la nube. Con P2P: ¡mejor! cada estudiante aporta. Es exactamente por esto que los parches de videojuegos gigantes se reparten por P2P.</p></details>'+
+    '<details class="refl"><summary>💭 Reflexiona: ¿quién responde si un archivo compartido es un virus?</summary><p>En C/S la Facultad puede escanear y moderar. En P2P no hay policía: cada peer confía (o no) en los demás. La vida real suele elegir <b>híbridos</b>: catálogo en servidor, descarga entre pares.</p></details>'+
+    '<div style="margin-top:12px"><button class="bigbtn" id="goPh2" type="button">➜ Continuar: apps reales (Fase 2)</button></div>';
+  $("designVerdict").hidden=false;
+  $("designVerdict").classList.add("reveal");
+  $("goPh2").onclick=()=>document.querySelector('.pnav[data-ph="2"]').click();
+  $("designVerdict").scrollIntoView({behavior:"smooth"});
+};
+
+/* ════════ FASE 2 · CASOS REALES ════════ */
+const CASES=[
+ {ic:"🍿",n:"Ver una película en Netflix",hint:"video a demanda, con «cargando…» al inicio",
+  a:"cs",p:"tcp",
+  fb:"<b>Sorpresa: ¡TCP!</b> Aunque es video, NO es en vivo: Netflix llena un <b>buffer</b> antes de reproducir, así que un reenvío pasa desapercibido. Con TCP garantiza que la película llegue perfecta. La navegación y el catálogo también son cliente-servidor (con CDN)."},
+ {ic:"🏴‍☠️",n:"Descargar la ISO de Linux por BitTorrent",hint:"archivos enormes, millones de descargas",
+  a:"p2p",p:"tcp",
+  fb:"<b>P2P + TCP.</b> Cada descargador se vuelve también servidor: la red escala sola. Y aunque parezca raro, BitTorrent usa <b>TCP</b>: una ISO dañada no sirve, la integridad importa más que la velocidad pura."},
+ {ic:"💬",n:"Enviar un mensaje de texto por WhatsApp",hint:"debe llegar completo… aunque el otro esté sin señal",
+  a:"cs",p:"tcp",
+  fb:"<b>C/S + TCP.</b> Tus mensajes pasan por los servidores de WhatsApp: por eso te llega aunque tu contacto esté desconectado (se guarda y reenvía). Y las <b>✓✓ azules</b> que viste en el primer widget son, en esencia, el <b>ACK</b> de TCP disfrazado en la interfaz."},
+ {ic:"📹",n:"Videollamada de WhatsApp / Zoom",hint:"tiempo real, mejor un hueco que congelarse",
+  a:"hib",p:"udp",
+  fb:"<b>Híbrida + UDP.</b> Matiz importante: la <i>señalización</i> («quiero llamar a Ana») va por servidores (C/S), pero el <i>video mismo</i> viaja UDP directo entre pares cuando es posible. Un fotograma perdido se salta; esperar su reenvío congelaría la imagen."},
+ {ic:"🌐",n:"El navegador pregunta la IP de www.ucol.mx (DNS)",hint:"una preguntita diminuta… millones de veces por segundo",
+  a:"cs",p:"udp",
+  fb:"<b>C/S + UDP.</b> La consulta cabe en un datagrama: saludar con 3 apretones de mano costaría más que la pregunta. Si se pierde, <b>la aplicación</b> reintenta (lo viste en la carrera). DNS también sabe usar TCP para respuestas muy grandes — el mundo real es pragmático."},
+ {ic:"🏦",n:"Transferencia bancaria en línea",hint:"ni un dígito puede perderse… jamás",
+  a:"cs",p:"tcp",
+  fb:"<b>C/S + TCP.</b> Integridad absoluta: perder «un fragmento» de una transferencia sería catastrófico. Cliente-servidor además da control, auditoría y seguridad. Aquí la velocidad es la última prioridad."}
+];
+let scoreF2=0, doneF2=0;
+(function buildCases(){
+  const box=$("cases");
+  CASES.forEach((c,idx)=>{
+    const card=document.createElement("div");card.className="casecard";
+    card.innerHTML=
+      '<div class="ch"><span class="ic">'+c.ic+'</span><div><b>'+c.n+'</b><small>'+c.hint+'</small></div></div>'+
+      '<div class="optrow"><span class="lbl">Arquitectura</span><div class="optbtns">'+
+        '<button class="opt" data-d="a" data-v="cs" type="button">🖥️ Cliente-Servidor</button>'+
+        '<button class="opt" data-d="a" data-v="p2p" type="button">🤝 P2P</button>'+
+        '<button class="opt" data-d="a" data-v="hib" type="button">🔀 Híbrida</button></div></div>'+
+      '<div class="optrow"><span class="lbl">Protocolo de transporte</span><div class="optbtns">'+
+        '<button class="opt" data-d="p" data-v="tcp" type="button">🐢 TCP</button>'+
+        '<button class="opt" data-d="p" data-v="udp" type="button">🐇 UDP</button></div></div>'+
+      '<div class="casefb"></div>';
+    const st={a:null,p:null};
+    card.querySelectorAll(".opt").forEach(b=>{
+      b.onclick=()=>{
+        st[b.dataset.d]=b.dataset.v;
+        card.querySelectorAll('.opt[data-d="'+b.dataset.d+'"]').forEach(x=>x.setAttribute("aria-pressed","false"));
+        b.setAttribute("aria-pressed","true");
+        if(st.a&&st.p&&card.dataset.done!=="1"){
+          card.dataset.done="1";doneF2++;
+          const okA=st.a===c.a, okP=st.p===c.p;
+          if(okA)scoreF2++; if(okP)scoreF2++;
+          const fb=card.querySelector(".casefb");
+          fb.className="casefb show "+((okA&&okP)?"good":(okA||okP)?"half":"bad");
+          fb.innerHTML=((okA&&okP)?"🎯 ¡Correcto! ":"")+
+            (!okA?"❌ Arquitectura: la correcta es <b>"+({cs:"Cliente-Servidor",p2p:"P2P",hib:"Híbrida"})[c.a]+"</b>. ":"")+
+            (!okP?"❌ Protocolo: el correcto es <b>"+(c.p==="tcp"?"TCP":"UDP")+"</b>. ":"")+"<br>"+c.fb;
+          $("scoreF2").textContent=scoreF2;
+          if(doneF2===CASES.length){
+            $("scoreMsg").innerHTML=scoreF2>=10?"🌟 ¡Dominio sólido!":(scoreF2>=7?"👍 Bien, con detalles por pulir.":"📖 Vale la pena repasar antes de la práctica.");
+            $("goF3").hidden=false;
+          }
+        }
+      };
+    });
+    box.appendChild(card);
+  });
+})();
+ $("goF3").onclick=()=>document.querySelector('.pnav[data-ph="3"]').click();
+
+/* ════════ FASE 3 · QUIZ METACOGNITIVO ════════ */
+const QUIZ=[
+ {tema:"Modelo TCP/IP",q:"Tu app arma la solicitud «GET /apuntes.pdf». ¿En qué capa del modelo TCP/IP ocurre eso?",
+  opts:["Transporte — ahí se corta en segmentos","Aplicación — es la app la que pide","Internet — ahí están las direcciones"],ok:1,
+  why:"La solicitud la construye la APLICACIÓN (capa 4). Transporte la corta y numera; Internet pone direcciones."},
+ {tema:"Modelo TCP/IP",q:"¿Quién agrega las direcciones IP de origen y destino al paquete?",
+  opts:["La capa de Internet (IP)","La capa de Acceso a red (WiFi)","La capa de Aplicación"],ok:0,
+  why:"IP = Internet Protocol: su trabajo es el sobre con origen y destino, y encontrar la ruta."},
+ {tema:"TCP vs UDP",q:"El handshake SYN → SYN-ACK → ACK es el saludo de…",
+  opts:["UDP, antes de disparar","ambos por igual","TCP, para establecer la conexión"],ok:2,
+  why:"Solo TCP saluda: por eso accept()/connect() existen en TCP y NO en UDP."},
+ {tema:"TCP vs UDP",q:"Para transferir un archivo que NO puede corruptarse eliges…",
+  opts:["UDP: más rápido y ya","TCP: garantiza que llegue completo","Da igual: ambos garantizan"],ok:1,
+  why:"UDP no reenvía: un hueco = archivo inservible. TCP repite hasta completarlo."},
+ {tema:"Cliente-Servidor",q:"¿Por qué WhatsApp necesita servidores si es un chat «entre dos personas»?",
+  opts:["Para guardar/reenviar el mensaje si el otro no está conectado","Porque TCP exige un servidor en medio","Para cobrar el servicio"],ok:0,
+  why:"El servidor es el intermediario que almacena y entrega cuando vuelvas a conectarte. TCP no exige servidor: es solo un protocolo."},
+ {tema:"P2P",q:"En una red P2P, si se conectan MÁS usuarios…",
+  opts:["siempre va más lento por saturación","hay más recursos: la red puede ir mejor","hay que comprar más servidores"],ok:1,
+  why:"Lo viste en la simulación: cada par que completa aporta ancho de banda. La carga se reparte (¡esa fue tu conclusión de Fase 1!)."},
+ {tema:"Integración",q:"Un archivo enviado SOLO por UDP puede no abrir. ¿Por qué?",
+  opts:["UDP cifra mal los datos","UDP borra los encabezados","Si un fragmento se pierde, nadie lo reenvía"],ok:2,
+  why:"UDP entrega sin garantías. Falta un pedazo → archivo incompleto. TCP sí reenviaría (timeout → retransmisión)."},
+ {tema:"Puente a sockets",q:"En tu práctica, el accept() del servidor está directamente ligado a…",
+  opts:["completar el handshake TCP y recibir esa conexión","convertir bits a ondas de radio","preguntar la IP al DNS"],ok:0,
+  why:"accept() contesta el SYN del cliente y crea la conexión. Sin handshake no hay conexión — y por eso no existe accept() en UDP."}
+];
+const QS={};
+(function buildQuiz(){
+  const box=$("quiz");
+  QUIZ.forEach((q,i)=>{
+    const card=document.createElement("div");card.className="qcard";
+    card.innerHTML=
+      '<div class="qtop"><div class="qnum">'+(i+1)+'</div><div class="qtxt">'+q.q+'</div></div>'+
+      '<span class="theme">Tema: '+q.tema+' · Primero tu confianza 👇</span>'+
+      '<div class="confrow">'+
+        '<button class="conf" data-c="1" type="button">🟥 Inseguro</button>'+
+        '<button class="conf" data-c="2" type="button">🟨 Más o menos</button>'+
+        '<button class="conf" data-c="3" type="button">🟩 Seguro</button></div>'+
+      '<div class="opts"></div><div class="qfb"></div>';
+    const opts=card.querySelector(".opts"),fb=card.querySelector(".qfb");
+    let conf=0;
+    card.querySelectorAll(".conf").forEach(cb=>{
+      cb.onclick=()=>{
+        conf=+cb.dataset.c;
+        card.querySelectorAll(".conf").forEach(x=>x.setAttribute("aria-pressed","false"));
+        cb.setAttribute("aria-pressed","true");
+        opts.classList.add("open");
+      };
+    });
+    q.opts.forEach((o,oi)=>{
+      const ob=document.createElement("button");ob.type="button";ob.textContent=o;
+      ob.onclick=()=>{
+        if(card.dataset.done)return;
+        card.dataset.done="1";
+        const ok=oi===q.ok;
+        QS[i]={ok,conf,tema:q.tema};
+        ob.style.borderColor=ok?"var(--ok)":"var(--bad)";
+        ob.style.background=ok?"var(--ok-soft)":"var(--bad-soft)";
+        fb.className="qfb show "+(ok?"good":"bad");
+        let cal="";
+        if(ok&&conf===3)cal="✅ Dominio calibrado: sabías que lo sabías.";
+        if(ok&&conf===1)cal="💎 ¡Sabías más de lo que creías! Confía en ese conocimiento.";
+        if(!ok&&conf===3)cal="⚠️ <b>Ilusión de saber</b>: estabas seguro y no era así. ¡Este tema es prioridad de repaso!";
+        if(!ok&&conf<3)cal="🔍 Hueco honesto: ya sabías que había que repasar. Anótalo.";
+        fb.innerHTML=(ok?"✅ <b>Correcto.</b> ":"❌ <b>Incorrecto.</b> ")+q.why+'<div class="cal">'+cal+'</div>';
+        if(Object.keys(QS).length===QUIZ.length)showResults();
+      };
+      opts.appendChild(ob);
+    });
+    box.appendChild(card);
+  });
+})();
+
+function showResults(){
+  const r=Object.values(QS);
+  const dom=r.filter(x=>x.ok&&x.conf===3).length;
+  const sub=r.filter(x=>x.ok&&x.conf===1).length;
+  const ilu=r.filter(x=>!x.ok&&x.conf===3).length;
+  const hue=r.filter(x=>!x.ok&&x.conf<3).length;
+  const aciertos=r.filter(x=>x.ok).length;
+  $("matrix").innerHTML=
+   '<div class="mcell domin"><span class="big">'+dom+'</span><b>✅ Dominado</b><small>Correcto con confianza alta: conocimiento sólido y calibrado</small></div>'+
+   '<div class="mcell sub"><span class="big">'+sub+'</span><b>💎 Sabes más de lo que crees</b><small>Acertaste sintiéndote inseguro: subestimas tu conocimiento</small></div>'+
+   '<div class="mcell ilu"><span class="big">'+ilu+'</span><b>⚠️ Ilusión de saber</b><small>Fallaste estando seguro: ¡repasar YA antes de la práctica!</small></div>'+
+   '<div class="mcell hueco"><span class="big">'+hue+'</span><b>🔍 Hueco honesto</b><small>Fallaste sabiendo que dudabas: repaso tranquilo y sale</small></div>';
+  const fallos={};
+  Object.values(QS).forEach(x=>{if(!x.ok)fallos[x.tema]=(fallos[x.tema]||0)+1;});
+  const RECO={
+   "Modelo TCP/IP":"Repasa las 4 capas con el widget «Sigue el paquete: enviar un WhatsApp».",
+   "TCP vs UDP":"Repite una carrera del widget «La gran carrera TCP vs UDP», sobre todo con pérdida alta.",
+   "Cliente-Servidor":"Revisa el papel del servidor como intermediario (mensajes de WhatsApp: las ✓✓).",
+   "P2P":"Recuerda la simulación: cada par aporta recursos y la carga se reparte.",
+   "Integración":"El archivo por UDP se daña porque nadie reenvía — repasa timeouts y retransmisión.",
+   "Puente a sockets":"Estudia el mapa syscall ↔ concepto de abajo: accept() = handshake."
+  };
+  let recoHtml="<b>Tu plan de repaso personalizado</b> ("+aciertos+"/"+QUIZ.length+" respuestas correctas):<ul>";
+  if(Object.keys(fallos).length===0)recoHtml+="<li>🎉 ¡Sin temas fallados! Tu plan es descansar y llegar temprano al laboratorio.</li>";
+  else Object.entries(fallos).forEach(([t,n])=>recoHtml+="<li><b>"+t+"</b> ("+n+" fallo"+(n>1?"s":"")+"): "+RECO[t]+"</li>");
+  if(ilu>0)recoHtml+="<li><b>Prioridad máxima:</b> tienes "+ilu+" tema(s) con ilusión de saber — son los que te harán perder más tiempo en la práctica.</li>";
+  recoHtml+="</ul>";
+  $("recos").innerHTML=recoHtml;
+  const c1=QS[0].ok&&QS[1].ok, c2=QS[2].ok&&QS[3].ok&&scoreF2>=10,
+        c3=QS[4].ok&&QS[5].ok, c4=QS[7].ok&&ilu===0;
+  $("readyCheck").innerHTML=[
+    [c1,"Identifico las 4 capas y qué hace cada una"],
+    [c2,"Distingo cuándo conviene TCP y cuándo UDP"],
+    [c3,"Entiendo los roles de cliente, servidor y pares"],
+    [c4,"Conecto los conceptos con las syscalls de la práctica"]
+  ].map(([ok,txt])=>'<div><span class="st">'+(ok?"✅":"⬜")+'</span><span>'+txt+(ok?"":" <i>(aún no — revisa tu plan de arriba)</i>")+'</span></div>').join("");
+  refreshSummary();
+  $("quizResults").hidden=false;
+}
+
+/* ══════════════════════════════════════════════════
+   EVIDENCIA · validación + firma + resumen (.txt)
+   ══════════════════════════════════════════════════ */
+function firma(){
+  const base=($("stName").value||"?")+"|"+($("stMat").value||"?")+"|"+
+    ARCH.arch+ARCH.proto+"|"+scoreF2+"|"+
+    Object.keys(QS).map(i=>(QS[i].ok?"1":"0")+QS[i].conf).sort().join("");
+  let h=0;
+  for(const c of base)h=(h*31+c.charCodeAt(0))>>>0;
+  return h.toString(36).toUpperCase().padStart(7,"0");
+}
+function evidenciaValida(){
+  const t=$("toast");
+  const aviso=(msg,el)=>{
+    t.textContent=msg;t.classList.add("show");
+    setTimeout(()=>{t.classList.remove("show");t.textContent="✓ Copiado al portapapeles";},2400);
+    if(el)el.focus();
+  };
+  if(!$("stName").value.trim()){aviso("⚠️ Escribe tu nombre para generar la evidencia",$("stName"));return false;}
+  if(!$("metacogTxt").value.trim()){aviso("⚠️ Escribe tu reflexión de cierre antes de generar la evidencia",$("metacogTxt"));return false;}
+  return true;
+}
+/* etiqueta de calibración por pregunta (compartida por txt y PDF) */
+function etiquetaConf(c){return ["","inseguro","más o menos","seguro"][c]||"—";}
+function etiquetaDiag(st){
+  if(st.ok) return st.conf===3?"Dominio calibrado":(st.conf===1?"Sabía más de lo que creía":"Correcto");
+  return st.conf===3?"Ilusión de saber":"Hueco honesto";
+}
+function buildSummary(dom,sub,ilu,hue,ac){
+  const fecha=new Date();
+  const fh=fecha.toLocaleDateString("es-MX")+" "+fecha.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+  const lines=[
+   "🌉 EL PUENTE A LOS SOCKETS — mi resultado",
+   "Alumno: "+($("stName").value||"—")+" · Matrícula: "+($("stMat").value||"—")+" · Fecha: "+fh,
+   "Programación Distribuida · Facultad de Telemática · UCol","",
+   "Fase 1 — Mi diseño de ColiShare: "+
+     ({cs:"Cliente-Servidor",p2p:"P2P"})[ARCH.arch]+" + "+
+     ({tcp:"TCP",udp:"UDP"})[ARCH.proto],
+   "Fase 2 — Apps reales: "+scoreF2+"/12 decisiones correctas",
+   "Fase 3 — Diagnóstico: "+ac+"/8 aciertos",
+   "   ✅ Dominado: "+dom+" · 💎 Subestimado: "+sub+" · ⚠️ Ilusión de saber: "+ilu+" · 🔍 Hueco honesto: "+hue,
+   "",
+   "Detalle de las 8 preguntas:"
+  ];
+  QUIZ.forEach((q,i)=>{
+    const st=QS[i];if(!st)return;
+    lines.push("   P"+(i+1)+" ["+q.tema+"]: "+(st.ok?"correcta":"INCORRECTA")+
+      " (confianza: "+etiquetaConf(st.conf)+" · "+etiquetaDiag(st)+")");
+  });
+  lines.push("");
+  lines.push("Reflexión: "+($("metacogTxt").value||"(pendiente de escribir)"));
+  lines.push("Firma de verificación: "+firma());
+  return lines.join("\n");
+}
+function buildSummaryFromState(){
+  const r=Object.values(QS);
+  return buildSummary(
+    r.filter(x=>x.ok&&x.conf===3).length,
+    r.filter(x=>x.ok&&x.conf===1).length,
+    r.filter(x=>!x.ok&&x.conf===3).length,
+    r.filter(x=>!x.ok&&x.conf<3).length,
+    r.filter(x=>x.ok).length);
+}
+function refreshSummary(){
+  if(Object.keys(QS).length===QUIZ.length)$("summaryPre").textContent=buildSummaryFromState();
+}
+["stName","stMat","metacogTxt"].forEach(id=>$(id).addEventListener("input",refreshSummary));
+
+/* botones de evidencia */
+ $("copyBtn").onclick=async()=>{
+  if(!evidenciaValida())return;
+  const txt=buildSummaryFromState();
+  try{await navigator.clipboard.writeText(txt);}
+  catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();}
+  const t=$("toast");t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);
+};
+ $("dlBtn").onclick=()=>{
+  if(!evidenciaValida())return;
+  const txt=buildSummaryFromState();
+  const nombre=($("stName").value||"alumno").trim().replace(/\s+/g,"_").replace(/[^\wÁÉÍÓÚáéíóúÑñ]/g,"");
+  const mat=($("stMat").value||"").trim();
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="PuenteSockets_"+nombre+(mat?"_"+mat:"")+".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+/* ══════════════════════════════════════════════════
+   GENERADOR DE PDF · 100% offline, sin librerías
+   Incluye tabla de las 8 preguntas (tema · resultado
+   · confianza · diagnóstico metacognitivo)
+   ══════════════════════════════════════════════════ */
+function pdfSafe(s){
+  return String(s)
+    .replace(/[\u2018\u2019\u201A\u201B]/g,"'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g,'"')
+    .replace(/[\u2013\u2014\u2015]/g,"-")
+    .replace(/\u2026/g,"...")
+    .replace(/[\u00A0\u202F\u200B]/g," ")
+    .replace(/[\u2705\u2714\u2713]/g,"OK")
+    .replace(/\u26A0[\uFE0F]?/g,"(!)")
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g,"");
+}
+function pdfEsc(s){return s.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");}
+function wrapTxt(s,max){
+  const out=[];let line="";
+  for(const w of String(s).split(/\s+/)){
+    if((line+" "+w).trim().length>max){if(line)out.push(line);line=w;}
+    else line=(line?line+" ":"")+w;
+  }
+  if(line)out.push(line);
+  return out.length?out:[""];
+}
+
+function buildEvidencePdf(){
+  /* datos */
+  const r=Object.values(QS);
+  const dom=r.filter(x=>x.ok&&x.conf===3).length,
+        sub=r.filter(x=>x.ok&&x.conf===1).length,
+        ilu=r.filter(x=>!x.ok&&x.conf===3).length,
+        hue=r.filter(x=>!x.ok&&x.conf<3).length,
+        ac =r.filter(x=>x.ok).length;
+  const fecha=new Date();
+  const fh=fecha.toLocaleDateString("es-MX")+" "+fecha.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+  const nombre=($("stName").value||"—"), mat=($("stMat").value||"—");
+  const refl=($("metacogTxt").value||"—").trim();
+  const archTxt={cs:"Cliente-Servidor",p2p:"P2P"}[ARCH.arch]||"—";
+  const protoTxt={tcp:"TCP",udp:"UDP"}[ARCH.proto]||"—";
+
+  const INK="0.13 0.12 0.10", GRAY="0.42 0.38 0.32", WHITE="1 1 1", TEAL="0.07 0.55 0.49";
+  const GREEN="0.09 0.48 0.33", RED="0.70 0.25 0.16", ZEBRA="0.95 0.94 0.91", ROWLINE="0.80 0.78 0.74";
+
+  /* páginas */
+  const pages=[]; let L=[]; let y=726;
+  const put=(txt,x,yy,f,size,col)=>{
+    L.push("BT /"+f+" "+size+" Tf "+col+" rg "+x+" "+yy+" Td ("+pdfEsc(pdfSafe(txt))+") Tj ET");
+  };
+  const headerBand=()=>{
+    L.push(TEAL+" rg 0 802 595 40 re f");
+    put("UNIVERSIDAD DE COLIMA",50,822,"F2",13,WHITE);
+    put("Facultad de Telemática · Programación Distribuida",50,808,"F1",9,WHITE);
+    put("EL PUENTE A LOS SOCKETS",50,775,"F2",16,INK);
+    put("Evidencia de actividad · Previo a la práctica de sockets",50,758,"F1",10,GRAY);
+    L.push(INK+" RG 1.5 w 50 748 m 545 748 l S");
+    y=726;
+  };
+  const newPage=()=>{ if(L.length)pages.push(L.join("\n")); L=[]; headerBand(); };
+  const ensure=(needed)=>{ if(y-needed<60)newPage(); };
+  headerBand();
+
+  const fila=(lbl,val)=>{ensure(22);put(lbl,50,y,"F2",11,INK);put(val,150,y,"F1",11,INK);y-=17;};
+  fila("Alumno:",nombre);
+  fila("Matrícula:",mat);
+  fila("Fecha:",fh);
+  fila("Firma de verificación:",firma());
+  y-=6;
+
+  const seccion=(t)=>{ensure(48);y-=8;put(t,50,y,"F2",12,INK);y-=8;
+    L.push(INK+" RG 0.6 w 50 "+(y+3)+" m 545 "+(y+3)+" l S");y-=14;};
+  const linea=(t)=>{ensure(18);put(t,58,y,"F1",10.5,INK);y-=14;};
+
+  seccion("FASE 1 · Mi diseño de ColiShare");
+  linea("Arquitectura: "+archTxt+"   ·   Transporte: "+protoTxt);
+
+  seccion("FASE 2 · Apps reales");
+  linea("Decisiones correctas: "+scoreF2+" / 12");
+
+  seccion("FASE 3 · Diagnóstico metacognitivo");
+  linea("Aciertos: "+ac+" / 8");
+  linea("Dominio calibrado: "+dom+"   ·   Sabía más de lo que creía: "+sub);
+  linea("Ilusión de saber: "+ilu+"   ·   Hueco honesto: "+hue);
+
+  /* ── TABLA · LAS 8 PREGUNTAS EN DETALLE ── */
+  seccion("DETALLE · LAS 8 PREGUNTAS");
+  ensure(170);                       /* la tabla completa cabe entera en una página */
+  const tTop=y;
+  /* encabezado de tabla */
+  L.push(INK+" rg 50 "+(y-16)+" 495 16 re f");
+  put("N°",58,y-11,"F2",9,WHITE);
+  put("Tema",84,y-11,"F2",9,WHITE);
+  put("Resultado",196,y-11,"F2",9,WHITE);
+  put("Confianza",276,y-11,"F2",9,WHITE);
+  put("Diagnóstico metacognitivo",366,y-11,"F2",9,WHITE);
+  y-=16;
+  QUIZ.forEach((q,i)=>{
+    const st=QS[i];if(!st)return;
+    if(i%2===0)L.push(ZEBRA+" rg 50 "+(y-14)+" 495 14 re f");
+    L.push(ROWLINE+" RG 0.5 w 50 "+(y-14)+" m 545 "+(y-14)+" l S");
+    put(String(i+1),58,y-10,"F1",9,INK);
+    put(q.tema,84,y-10,"F1",9,INK);
+    put(st.ok?"Correcto":"Incorrecto",196,y-10,"F2",9,st.ok?GREEN:RED);
+    const confTxt=["","Inseguro","Más o menos","Seguro"][st.conf]||"—";
+    put(confTxt,276,y-10,"F1",9,INK);
+    put(etiquetaDiag(st),366,y-10,"F1",9,INK);
+    y-=14;
+  });
+  /* borde exterior de la tabla */
+  L.push(INK+" RG 0.8 w 50 "+y+" 495 "+(tTop-y)+" re S");
+  y-=16;
+
+  seccion("REFLEXIÓN DE CIERRE");
+  wrapTxt(refl,92).forEach(t=>linea(t));
+
+  put("Widget educativo generado localmente · Material con apoyo de IAG, Acuerdo No. 23/2024 · UCol",50,40,"F1",8,GRAY);
+  pages.push(L.join("\n"));
+
+  /* ensamblar PDF */
+  const objs=[
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids ["+pages.map((_,i)=>(5+2*i)+" 0 R").join(" ")+" ] /Count "+pages.length+" >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+  ];
+  pages.forEach((c,i)=>{
+    objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents "+(6+2*i)+" 0 R >>");
+    objs.push("<< /Length "+c.length+" >>\nstream\n"+c+"\nendstream");
+  });
+  let pdf="%PDF-1.4\n";
+  const offs=[];
+  objs.forEach((o,i)=>{offs.push(pdf.length);pdf+=(i+1)+" 0 obj\n"+o+"\nendobj\n";});
+  const xref=pdf.length;
+  pdf+="xref\n0 "+(objs.length+1)+"\n0000000000 65535 f \n";
+  offs.forEach(o=>pdf+=String(o).padStart(10,"0")+" 00000 n \n");
+  pdf+="trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
+  const bytes=new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++)bytes[i]=pdf.charCodeAt(i)&0xFF;
+  return new Blob([bytes],{type:"application/pdf"});
+}
+
+ $("pdfBtn").onclick=()=>{
+  if(!evidenciaValida())return;
+  const blob=buildEvidencePdf();
+  const a=document.createElement("a");
+  const nombre=($("stName").value||"alumno").trim().replace(/\s+/g,"_").replace(/[^\wÁÉÍÓÚáéíóúÑñ]/g,"");
+  const mat=($("stMat").value||"").trim();
+  a.href=URL.createObjectURL(blob);
+  a.download="PuenteSockets_"+nombre+(mat?"_"+mat:"")+".pdf";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+</script>
+</body>
+</html>
