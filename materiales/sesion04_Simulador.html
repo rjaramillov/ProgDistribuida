@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La gran carrera · TCP vs UDP</title>
+<style>
+:root{
+  --paper:#F6F1E6; --ink:#221E19; --line:#D8CFBC;
+  --tcp:#2E5CA6; --tcp-soft:#E3EDF5;
+  --udp:#C07A10; --udp-soft:#FBF0D3;
+  --ok:#177A54; --ok-soft:#E4F4EC;
+  --bad:#B3402A; --bad-soft:#FBEAE8;
+  --app:#128C7E;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none !important}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--ink);font-size:15px;line-height:1.5;
+  background:var(--paper);
+  background-image:linear-gradient(rgba(34,30,25,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,30,25,.045) 1px,transparent 1px);
+  background-size:26px 26px;min-height:100vh;padding:18px 16px 30px}
+button{font-family:inherit;cursor:pointer}
+
+/* ===== BARRA INSTITUCIONAL ===== */
+.inst-bar{display:flex;align-items:center;gap:14px;background:#FFFCF4;border:2.5px solid var(--ink);border-radius:14px;
+  padding:10px 16px;max-width:1150px;margin:0 auto 14px;box-shadow:5px 5px 0 rgba(34,30,25,.15);flex-wrap:wrap}
+.inst-bar .logo-box{width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.inst-bar .inst-txt b{display:block;font-size:15px}
+.inst-bar .inst-txt small{display:block;color:#6A6152;font-size:12.5px}
+.inst-bar .chip{margin-left:auto;background:var(--tcp-soft);border:1.5px solid var(--tcp);font-size:11.5px;padding:4px 12px;border-radius:20px;font-weight:600}
+
+header{text-align:center;margin-bottom:16px}
+header h1{font-size:clamp(20px,3.4vw,30px);letter-spacing:-.5px}
+header h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:2px 10px;border-radius:8px;transform:rotate(-2deg);display:inline-block}
+header p{color:#6A6152;margin-top:6px;font-size:14px}
+
+.wrap{max-width:1150px;margin:0 auto}
+
+/* ===== FASE 1 · CONFIGURACIÓN ===== */
+.panel{background:#FFFCF4;border:2.5px solid var(--ink);border-radius:16px;padding:18px 20px;box-shadow:5px 5px 0 rgba(34,30,25,.15);margin-bottom:14px}
+.panel h2{font-size:16px;margin-bottom:12px}
+.panel h2 small{color:#6A6152;font-weight:400;font-size:13px}
+
+.esc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.esc-card{border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:14px;text-align:left;transition:transform .15s;position:relative}
+.esc-card .ico{font-size:30px;display:block;margin-bottom:6px}
+.esc-card b{display:block;font-size:14.5px}
+.esc-card small{display:block;color:#6A6152;font-size:12px;margin-top:4px}
+.esc-card:hover{transform:translateY(-3px)}
+.esc-card.sel{background:var(--ok-soft);box-shadow:4px 4px 0 rgba(34,30,25,.2)}
+.esc-card.sel::after{content:"✓";position:absolute;top:8px;right:10px;background:var(--ok);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+
+.loss-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.loss-row input[type=range]{flex:1;min-width:200px;accent-color:var(--tcp);height:30px}
+.loss-val{font-size:26px;font-weight:800;min-width:90px;text-align:center;background:var(--ink);color:var(--paper);border-radius:10px;padding:4px 10px}
+.loss-label{flex-basis:100%;font-size:13px;color:#6A6152}
+
+.pred-row{display:flex;gap:10px;flex-wrap:wrap}
+.pred-btn{border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:12px 18px;font-size:14.5px;font-weight:600;transition:transform .15s}
+.pred-btn:hover{transform:translateY(-2px)}
+.pred-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+.fast-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13.5px;color:#6A6152}
+.fast-row input{width:18px;height:18px;accent-color:var(--tcp)}
+
+.start-zone{margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bigbtn{background:var(--app);color:#fff;border:none;border-radius:12px;padding:14px 26px;font-size:16px;font-weight:700;box-shadow:4px 4px 0 rgba(34,30,25,.25);transition:transform .15s}
+.bigbtn:hover{transform:translateY(-2px)}
+.setup-err{color:var(--bad);font-weight:600;font-size:13.5px}
+
+/* ===== FASE 2 · ARENA ===== */
+.mission-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.mchip{border:1.5px solid var(--ink);border-radius:20px;background:#FFFCF4;padding:4px 12px;font-size:12.5px;font-weight:600}
+
+.lane{border:2.5px solid var(--ink);border-radius:14px;background:#FFFCF4;padding:14px 16px;margin-bottom:16px}
+.lane.lane-tcp{background:var(--tcp-soft)}
+.lane.lane-udp{background:var(--udp-soft)}
+.lane-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.lane-title b{font-size:17px}
+.lane-title small{display:block;font-size:12.5px;color:#4A4238;margin-top:2px;max-width:52ch}
+
+/* medidores más separados y legibles */
+.meters{display:flex;gap:10px;flex-wrap:wrap}
+.meter{background:#fff;border:1.5px solid var(--ink);border-radius:8px;padding:5px 12px;font-size:13.5px}
+.meter b{font-size:14.5px}
+
+.track{position:relative;height:104px;border:2px dashed var(--line);border-radius:10px;margin-top:12px;overflow:hidden;
+  background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(34,30,25,.1) 34px 36px),#fff}
+.node{position:absolute;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;border:2.5px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff;z-index:2}
+.node.src{left:8px}
+.node.dst{right:8px}
+.node.flash{animation:nflash .4s ease}
+@keyframes nflash{50%{transform:translateY(-50%) scale(1.25);background:#D9FDD3}}
+
+/* paquetes con letra más grande */
+.pkt{position:absolute;top:50%;left:60px;transform:translate(-50%,-50%);z-index:3;border:2px solid var(--ink);border-radius:999px;
+  padding:4px 12px;font-family:monospace;font-weight:700;font-size:13.5px;background:var(--tcp);color:#fff;white-space:nowrap}
+.pkt.udp{background:var(--udp)}
+.pkt.ctl{font-size:12.5px;padding:3px 10px;background:var(--tcp)}
+.pkt.ctl.udp{background:var(--udp)}
+.pkt.ack{background:var(--ok);font-size:12.5px;padding:3px 10px}
+.pkt.lost{top:calc(50% + 34px);opacity:0;transform:translate(-50%,-50%) rotate(60deg)}
+
+/* ══ REGISTRO: alto, letra grande, mensajes COMPLETOS con salto de línea ══ */
+.log{font-family:Consolas,'Courier New',monospace;font-size:14px;line-height:1.6;
+  background:var(--ink);color:#E8F1FA;border-radius:10px;padding:12px 16px;
+  margin-top:12px;height:190px;overflow-y:auto;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:3px}
+.log .l{white-space:normal;overflow-wrap:break-word;word-break:break-word}
+.log.log-udp{color:#F8E3B0}
+.log::-webkit-scrollbar{width:10px}
+.log::-webkit-scrollbar-thumb{background:#5A5348;border-radius:6px}
+.log::-webkit-scrollbar-track{background:transparent}
+
+.narr{margin-top:14px;background:var(--ink);color:var(--paper);border-radius:16px;padding:16px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;box-shadow:6px 6px 0 rgba(34,30,25,.2)}
+.narr .stepbadge{background:var(--app);color:#fff;font-weight:800;padding:6px 14px;border-radius:10px;font-size:14px;white-space:nowrap}
+.narr p{flex:1;min-width:240px;font-size:15.5px;line-height:1.6}
+.narr p b{color:#FFD98A}
+.narr button{background:var(--paper);color:var(--ink);border:none;border-radius:10px;padding:11px 20px;font-weight:700;font-size:14.5px}
+.narr button:disabled{opacity:.35;cursor:not-allowed}
+.narr button.ghost{background:transparent;color:var(--paper);border:1.5px solid var(--paper);font-weight:400}
+
+/* ===== FASE 3 · VEREDICTO ===== */
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:760px){.vgrid{grid-template-columns:1fr}}
+.vcard{border:2.5px solid var(--ink);border-radius:14px;padding:16px;background:#FFFCF4}
+.vcard h3{font-size:16px;margin-bottom:8px}
+.vcard .rows{font-size:13.5px;margin-bottom:10px}
+.vcard .rows div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0}
+.vcard .preview{border-radius:10px;padding:10px;font-size:14px;line-height:1.45}
+.vcard .preview.good{background:var(--ok-soft);border:2px solid var(--ok)}
+.vcard .preview.warn{background:var(--bad-soft);border:2px solid var(--bad)}
+.winner{border:3px solid var(--ink);border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:6px 6px 0 rgba(34,30,25,.2)}
+.winner h3{font-size:19px;margin-bottom:6px}
+.winner p{font-size:14.5px}
+.predfb{border:2.5px dashed var(--ink);border-radius:14px;padding:14px 16px;margin-bottom:12px;font-size:14.5px;background:var(--udp-soft)}
+.predfb.good{background:var(--ok-soft)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:14px}
+.cmp .scard{border:2.5px solid var(--ink);border-radius:12px;padding:12px;background:#FFFCF4;font-size:13px}
+.cmp .scard b{display:block;margin-bottom:4px;font-size:14px}
+.mnemo{border:2.5px solid var(--ink);border-radius:12px;padding:12px;background:var(--tcp-soft);font-size:14px;margin-bottom:14px}
+
+/* ===== FOOTER ===== */
+.site-footer{max-width:1150px;margin:28px auto 0;background:var(--ink);color:var(--paper);border-radius:16px;padding:18px 22px;box-shadow:6px 6px 0 rgba(34,30,25,.2)}
+.ia-note{display:flex;gap:14px;align-items:flex-start;justify-content:center;max-width:880px;margin:0 auto;font-size:13.5px;line-height:1.65;text-align:left}
+.ia-note .ico{font-size:24px;flex-shrink:0}
+.ia-note b{color:#FFD98A}
+.site-footer .fine{margin-top:13px;padding-top:11px;border-top:1px dashed rgba(246,241,230,.35);font-size:11.5px;color:rgba(246,241,230,.65);text-align:center}
+.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+</style>
+</head>
+<body>
+
+<!-- ══════════ BARRA INSTITUCIONAL ══════════ -->
+<div class="inst-bar">
+  <!-- ⚠️ Reemplaza este <svg> de marcador por el logo oficial UCol (puedes copiar
+       el <img src="data:image/png;base64,..."> que ya tienes embebido en tus slides) -->
+  <div class="logo-box">
+    <svg viewBox="0 0 80 80" width="54" height="54" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Universidad de Colima">
+      <circle cx="40" cy="40" r="35" fill="#FFFCF4" stroke="#6A6152" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <text x="40" y="38" text-anchor="middle" font-family="Arial" font-size="14" font-weight="900" fill="#221E19">LOGO</text>
+      <text x="40" y="53" text-anchor="middle" font-family="Arial" font-size="11" fill="#6A6152">UCol</text>
+    </svg>
+  </div>
+  <div class="inst-txt">
+    <b>Universidad de Colima</b>
+    <small>Facultad de Telemática · Materia: Programación Distribuida</small>
+  </div>
+  <span class="chip">Sesión 04 · TCP vs UDP</span>
+</div>
+
+<header>
+  <h1>🏁 <em>La gran carrera</em> · TCP vs UDP</h1>
+  <p>Dos protocolos, una misma misión. TCP garantiza la entrega (pero cuesta tiempo) · UDP dispara sin confirmar (pero no promete nada). ¿Quién gana? <b>Depende de la misión…</b></p>
+</header>
+
+<div class="wrap">
+
+<!-- ══════════ FASE 1 · CONFIGURACIÓN ══════════ -->
+<section id="setup">
+  <div class="panel">
+    <h2>1 · Elige la misión <small>— ¿qué está viajando por la red?</small></h2>
+    <div class="esc-grid" id="escGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2 · ¿Cómo está la red? <small>— mueve el nivel de pérdida de paquetes</small></h2>
+    <div class="loss-row">
+      <input type="range" id="lossRange" min="0" max="60" step="5" value="25">
+      <div class="loss-val" id="lossVal">25%</div>
+      <div class="loss-label" id="lossLabel">😐 Regular con tráfico</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>3 · Predice antes de ver <small>— comprométete con una hipótesis 🎯</small></h2>
+    <div class="pred-row">
+      <button class="pred-btn" data-pred="tcp" aria-pressed="false">🐢 TCP lo hará mejor</button>
+      <button class="pred-btn" data-pred="udp" aria-pressed="false">🐇 UDP lo hará mejor</button>
+      <button class="pred-btn" data-pred="empate" aria-pressed="false">🤝 Empate técnico</button>
+    </div>
+    <div class="fast-row">
+      <input type="checkbox" id="fastChk"><label for="fastChk">⚡ Modo rápido (recomendado para demostrar en clase: todo pasa ~2.5× más rápido)</label>
+    </div>
+    <div class="start-zone">
+      <button class="bigbtn" id="startBtn">🚦 ¡Iniciar transmisión!</button>
+      <span class="setup-err" id="setupErr"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FASE 2 · ARENA ══════════ -->
+<section id="arena" hidden>
+  <div class="mission-chips" id="missionChips"></div>
+
+  <div class="lane lane-tcp">
+    <div class="lane-head">
+      <div class="lane-title"><b>🐢 TCP — «El confiable»</b><small>Orientado a conexión: saluda (handshake), numera, confirma y reenvía lo perdido.</small></div>
+      <div class="meters">
+        <span class="meter">⏱ <b id="tcpTime">0.0s</b></span>
+        <span class="meter">✅ <b id="tcpOk">0</b>/<span id="tcpTot">10</span></span>
+        <span class="meter">🔁 reenvíos <b id="tcpRetry">0</b></span>
+        <span class="meter">📮 tráfico extra <b id="tcpExtra">0</b></span>
+      </div>
+    </div>
+    <div class="track" id="tcpTrack">
+      <div class="node src" id="tcpSrc">📡</div>
+      <div class="node dst" id="tcpDst">📥</div>
+    </div>
+    <div class="log" id="tcpLog"></div>
+  </div>
+
+  <div class="lane lane-udp">
+    <div class="lane-head">
+      <div class="lane-title"><b>🐇 UDP — «El veloz»</b><small>Sin conexión: dispara los datagramas y sigue con su vida. Lo que se pierde, se perdió.</small></div>
+      <div class="meters">
+        <span class="meter">⏱ <b id="udpTime">0.0s</b></span>
+        <span class="meter">✅ <b id="udpOk">0</b>/<span id="udpTot">10</span></span>
+        <span class="meter">🔁 reenvíos <b>0 (no existen)</b></span>
+        <span class="meter">📮 tráfico extra <b>0</b></span>
+      </div>
+    </div>
+    <div class="track" id="udpTrack">
+      <div class="node src" id="udpSrc">📡</div>
+      <div class="node dst" id="udpDst">📥</div>
+    </div>
+    <div class="log log-udp" id="udpLog"></div>
+  </div>
+
+  <div class="narr" id="narr">
+    <span class="stepbadge">EN VIVO</span>
+    <p id="narrText">…</p>
+    <button class="ghost" id="resetBtn2" type="button">↺ Reiniciar</button>
+    <button id="verdictBtn" type="button" disabled>🏁 Ver veredicto</button>
+  </div>
+</section>
+
+<!-- ══════════ FASE 3 · VEREDICTO ══════════ -->
+<section id="verdict" hidden>
+  <div class="predfb" id="predFb"></div>
+  <div class="vgrid" id="vgrid"></div>
+  <div class="winner" id="winnerCard"></div>
+  <div class="mnemo">🧠 <b>Para recordar:</b> TCP es una <b>carta certificada</b> 📬 (llega completa, con acuse de recibo, aunque tarde). UDP es <b>lanzar globos con mensajes</b> 🎈 (rápido y barato… pero algunos se pierden para siempre).</div>
+  <div class="cmp" id="cmpGrid">
+    <div class="scard" style="background:var(--tcp-soft)"><b>🤝 Conexión</b>TCP: orientado a conexión (handshake SYN → SYN-ACK → ACK).<br>UDP: sin conexión, dispara y olvida.</div>
+    <div class="scard" style="background:var(--udp-soft)"><b>✅ Fiabilidad</b>TCP: garantiza entrega (ACK + retransmisión).<br>UDP: entrega sin garantías; si se pierde, se perdió.</div>
+    <div class="scard" style="background:var(--tcp-soft)"><b>🔢 Orden</b>TCP: reordena con números de secuencia (¡como el widget de WhatsApp!).<br>UDP: puede llegar desordenado y nadie lo corrige.</div>
+    <div class="scard" style="background:var(--udp-soft)"><b>⚡ Velocidad / overhead</b>TCP: más lento; cada segmento pesa 20 bytes de encabezado + ACKs.<br>UDP: mínimo; solo 8 bytes de encabezado.</div>
+    <div class="scard"><b>📱 TCP en la vida real</b>Páginas web (HTTP/HTTPS), correo, descargas, transferencias de archivos, mensajes de WhatsApp.</div>
+    <div class="scard"><b>🎮 UDP en la vida real</b>Videollamadas (RTP), streaming en vivo, juegos en línea, DNS, llamadas de voz de WhatsApp.</div>
+  </div>
+  <button class="bigbtn" id="againBtn" type="button">🔁 Probar otra misión</button>
+</section>
+
+</div>
+
+<!-- ══════════ PIE INSTITUCIONAL ══════════ -->
+<footer class="site-footer">
+  <div class="ia-note">
+    <span class="ico">🤖</span>
+    <div><b>Transparencia en el desarrollo:</b> Material preparado por el profesor con apoyo de <b>IA generativa</b>, revisado antes de su uso en clase, en apego al <b>Acuerdo No. 23/2024</b> de los Lineamientos institucionales para el uso de IAG — <b>Universidad de Colima, Facultad de Telemática</b>.</div>
+  </div>
+  <div class="fine">Widget educativo interactivo · «La gran carrera: TCP vs UDP» · Materia: Programación Distribuida · Facultad de Telemática</div>
+</footer>
+
+<script>
+/* ================== DATOS ================== */
+const ESC=[
+ {id:'pdf',  icono:'📄', nombre:'Enviar un contrato PDF',   frag:10, enVivo:false, tol:1,   dns:false,
+  desc:'10 fragmentos · si falta 1 página, el archivo no sirve'},
+ {id:'video',icono:'🎥', nombre:'Videollamada en vivo',      frag:8,  enVivo:true,  tol:.75, dns:false,
+  desc:'8 fotogramas · un fotograma que llega tarde ya no se muestra'},
+ {id:'game', icono:'🎮', nombre:'Partida online',            frag:5,  enVivo:true,  tol:.5,  dns:false,
+  desc:'5 posiciones · la posición de hace 200 ms ya no importa'},
+ {id:'dns',  icono:'🌐', nombre:'Consulta DNS (abrir una página)', frag:1, enVivo:false, tol:1, dns:true,
+  desc:'1 solo datagrama · «¿cuál es la IP de www.ucol.mx?»'}
+];
+const T={hand:400, travel:750, ack:400, gap:150, timeout:1300};
+
+const $=id=>document.getElementById(id);
+const S={esc:null,loss:25,pred:null,fast:false,run:0,total:0,
+  tcpOk:0,udpOk:0,retries:0,extras:0,udpRetries:0,
+  tcpStart:0,udpStart:0,tcpActive:false,udpActive:false,tTcp:0,tUdp:0,
+  finishedTcp:false,finishedUdp:false,firstLossShown:false};
+let clock=null;
+const d=ms=>Math.round(ms/(S.fast?2.5:1));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=()=>Math.random()*100<S.loss;
+
+/* ================== FASE 1 UI ================== */
+function buildEscGrid(){
+  const g=$('escGrid');g.innerHTML="";
+  ESC.forEach((e,i)=>{
+    const b=document.createElement("button");
+    b.type="button";b.className="esc-card";
+    b.innerHTML='<span class="ico">'+e.icono+'</span><b>'+e.nombre+'</b><small>'+e.desc+'</small>';
+    b.onclick=()=>{S.esc=e;[...g.children].forEach(c=>c.classList.remove("sel"));b.classList.add("sel");};
+    g.appendChild(b);
+  });
+}
+buildEscGrid();
+
+document.querySelectorAll(".pred-btn").forEach(b=>{
+  b.onclick=()=>{S.pred=b.dataset.pred;
+    document.querySelectorAll(".pred-btn").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");};
+});
+
+const lossRange=$('lossRange');
+lossRange.oninput=()=>{
+  S.loss=+lossRange.value;$('lossVal').textContent=S.loss+"%";
+  let t;
+  if(S.loss===0)t="🌟 Perfecta — red de laboratorio (casi no existe en Internet real)";
+  else if(S.loss<=15)t="🙂 Buena — fibra tranquila";
+  else if(S.loss<=35)t="😐 Regular — hora pico con tráfico";
+  else t="⛈️ Pésima — ¡el Wi-Fi del auditorio!";
+  $('lossLabel').textContent=t;
+};
+
+/* ================== INICIAR ================== */
+ $('startBtn').onclick=()=>{
+  if(!S.esc||!S.pred){
+    const e=$('setupErr');e.textContent="⚠️ Elige una misión y tu predicción para arrancar.";
+    e.classList.remove("shake");void e.offsetWidth;e.classList.add("shake");return;
+  }
+  S.fast=$('fastChk').checked;
+  startRace();
+};
+
+function startRace(){
+  S.run++;
+  const run=S.run;
+  S.total=S.esc.frag;S.tcpOk=0;S.udpOk=0;S.retries=0;S.extras=0;S.udpRetries=0;
+  S.tcpActive=false;S.udpActive=false;S.tTcp=0;S.tUdp=0;
+  S.finishedTcp=false;S.finishedUdp=false;S.firstLossShown=false;
+  $('tcpTrack').querySelectorAll(".pkt").forEach(p=>p.remove());
+  $('udpTrack').querySelectorAll(".pkt").forEach(p=>p.remove());
+  $('tcpLog').innerHTML="";$('udpLog').innerHTML="";
+  $('tcpLog').scrollTop=0;$('udpLog').scrollTop=0;
+  $('tcpDst').textContent=S.esc.icono;$('udpDst').textContent=S.esc.icono;
+  $('tcpTot').textContent=S.total;$('udpTot').textContent=S.total;
+  updMeters();
+  $('tcpTime').textContent="0.0s";$('udpTime').textContent="0.0s";
+  $('verdictBtn').disabled=true;
+  const predTxt=S.pred==='tcp'?"🐢 TCP":(S.pred==='udp'?"🐇 UDP":"🤝 Empate");
+  $('missionChips').innerHTML=
+    '<span class="mchip">Misión: '+S.esc.icono+' '+S.esc.nombre+'</span>'+
+    '<span class="mchip">Pérdida de red: '+S.loss+'%</span>'+
+    '<span class="mchip">Tu predicción: '+predTxt+'</span>'+
+    (S.fast?'<span class="mchip">⚡ Modo rápido</span>':'');
+  $('setup').hidden=true;$('verdict').hidden=true;$('arena').hidden=false;
+  if(clock)clearInterval(clock);
+  clock=setInterval(()=>{
+    const now=performance.now();
+    if(S.tcpActive)$('tcpTime').textContent=((now-S.tcpStart)/1000).toFixed(1)+"s";
+    if(S.udpActive)$('udpTime').textContent=((now-S.udpStart)/1000).toFixed(1)+"s";
+  },100);
+  runTcp(run);runUdp(run);
+  window.scrollTo({top:$('arena').offsetTop-10,behavior:'smooth'});
+}
+
+/* ================== VISUALES DE PISTA ================== */
+function spawnPkt(lane,run,opts){
+  const track=$(lane+'Track');
+  const p=document.createElement("div");
+  p.className="pkt "+(opts.cls||"");
+  p.textContent=opts.text;
+  p.style.transition="left "+opts.dur+"ms linear, top .5s ease, opacity .5s ease, transform .5s ease";
+  p.style.left=opts.dir==='back'?"calc(100% - 60px)":"60px";
+  track.appendChild(p);
+  void p.offsetWidth;
+  p.style.left=opts.dir==='back'?"60px":"calc(100% - 60px)";
+  if(opts.lost){
+    setTimeout(()=>{if(run!==S.run)return;p.classList.add("lost");},opts.dur*0.5);
+    setTimeout(()=>{p.remove();},opts.dur*0.5+1000);
+  }else{
+    setTimeout(()=>{
+      if(run!==S.run){p.remove();return;}
+      const n=$(lane+'Dst');n.classList.remove("flash");void n.offsetWidth;n.classList.add("flash");
+      p.remove();
+    },opts.dur+40);
+  }
+}
+function log(lane,txt){
+  const l=$(lane+'Log');
+  const d=document.createElement("div");d.className="l";d.textContent=txt;
+  l.appendChild(d);
+  while(l.children.length>40)l.removeChild(l.firstChild);   /* guarda historial largo */
+  l.scrollTop=l.scrollHeight;                                /* siempre visible lo último */
+}
+function narr(html){$('narrText').innerHTML=html;}
+function updMeters(){
+  $('tcpOk').textContent=S.tcpOk;$('udpOk').textContent=S.udpOk;
+  $('tcpRetry').textContent=S.retries;$('tcpExtra').textContent=S.extras;
+}
+
+/* ================== MOTOR TCP ================== */
+async function runTcp(run){
+  S.tcpStart=performance.now();S.tcpActive=true;
+  log('tcp',"→ SYN: «¿estás ahí?»");
+  spawnPkt('tcp',run,{text:"SYN",cls:"ctl",dur:d(T.hand)});
+  await sleep(d(T.hand)+90);if(run!==S.run)return;
+  S.extras++;updMeters();
+  log('tcp',"← SYN-ACK: «sí, estoy listo»");
+  spawnPkt('tcp',run,{text:"SYN-ACK",cls:"ctl",dir:'back',dur:d(T.hand)});
+  await sleep(d(T.hand)+90);if(run!==S.run)return;
+  S.extras++;updMeters();
+  log('tcp',"→ ACK: «conexión establecida, empiezo»");
+  spawnPkt('tcp',run,{text:"ACK",cls:"ctl",dur:d(T.hand)});
+  await sleep(d(T.hand)+130);if(run!==S.run)return;
+  narr("🤝 <b>Handshake completado</b> (SYN → SYN-ACK → ACK). TCP ya gastó 3 mensajes… y aún no envía ni un dato. <b>UDP</b> en cambio lleva rato volando: ese es el precio (y la garantía) de la conexión.");
+
+  for(let i=1;i<=S.total;i++){
+    while(true){
+      const res=await tcpSeg(run,i);
+      if(run!==S.run)return;
+      if(res==="cancel")return;
+      if(res==="ok")break;
+    }
+  }
+  log('tcp',"→ FIN: «terminé, cerramos la conexión»");
+  S.extras++;updMeters();
+  spawnPkt('tcp',run,{text:"FIN",cls:"ctl",dur:d(T.hand)});
+  await sleep(d(T.hand)+70);if(run!==S.run)return;
+  S.extras++;updMeters();
+  spawnPkt('tcp',run,{text:"ACK-FIN",cls:"ctl",dir:'back',dur:d(T.hand)});
+  await sleep(d(T.hand)+80);if(run!==S.run)return;
+  finishTcp(run);
+}
+async function tcpSeg(run,i){
+  const delivered=!rnd();
+  spawnPkt('tcp',run,{text:"D"+i,dur:d(T.travel),lost:!delivered});
+  if(delivered){
+    await sleep(d(T.travel));if(run!==S.run)return"cancel";
+    S.tcpOk++;updMeters();
+    log('tcp',"✓ Fragmento "+i+" llegó íntegro");
+    S.extras++;updMeters();
+    spawnPkt('tcp',run,{text:"ACK "+i,cls:"ack",dir:'back',dur:d(T.ack)});
+    await sleep(d(T.ack));if(run!==S.run)return"cancel";
+    log('tcp',"← ACK "+i+" confirmado");
+    return"ok";
+  }else{
+    await sleep(d(T.travel)*0.5);if(run!==S.run)return"cancel";
+    await sleep(d(T.timeout));if(run!==S.run)return"cancel";
+    log('tcp',"⏱ TIMEOUT: sin ACK del fragmento "+i+" → reenviando…");
+    S.retries++;updMeters();
+    if(!S.firstLossShown){
+      S.firstLossShown=true;
+      narr("💥 <b>¡Se perdió un fragmento TCP!</b> Fíjate bien: nadie avisa de la pérdida. TCP se entera <b>solo cuando el ACK no llega</b> y salta el <b>timeout</b>… y entonces <b>reenvía</b>. Garantía = tiempo extra. UDP, en cambio, ni se enteró.");
+    }
+    return"lost";
+  }
+}
+function finishTcp(run){
+  if(run!==S.run)return;
+  S.tcpActive=false;S.tTcp=(performance.now()-S.tcpStart)/1000;
+  $('tcpTime').textContent=S.tTcp.toFixed(1)+"s";
+  S.finishedTcp=true;
+  log('tcp',"🏁 TCP terminó: "+S.total+"/"+S.total+" entregado(s) en "+S.tTcp.toFixed(1)+"s");
+  checkBoth();
+}
+
+/* ================== MOTOR UDP ================== */
+async function runUdp(run){
+  S.udpStart=performance.now();S.udpActive=true;
+  const esc=S.esc;
+  if(esc.dns){
+    log('udp',"🚀 Un solo datagrama: «¿IP de www.ucol.mx?» — sin saludo, directo");
+    let ok=false;
+    for(let attempt=1;attempt<=3&&!ok;attempt++){
+      const delivered=!rnd();
+      spawnPkt('udp',run,{text:"DNS?",cls:"udp",dur:d(T.travel),lost:!delivered});
+      if(delivered){
+        await sleep(d(T.travel));if(run!==S.run)return;
+        S.udpOk=1;updMeters();ok=true;
+        log('udp',"← Respuesta: 148.202.1.1 ✓ ¡resuelto!");
+        S.udpRetries=attempt-1;
+      }else{
+        await sleep(d(T.travel)+d(T.timeout));if(run!==S.run)return;
+        if(attempt<3)log('udp',"⏱ Sin respuesta… la APLICACIÓN reintenta (intento "+(attempt+1)+") — ¡UDP no reenvía por sí solo!");
+      }
+    }
+    finishUdp(run);return;
+  }
+  log('udp',"🚀 Sin saludo, sin confirmación: ¡ráfaga de "+S.total+" datagramas!");
+  const flights=[];
+  for(let i=1;i<=S.total;i++){
+    flights.push(udpOne(run,i));
+    await sleep(d(T.gap));if(run!==S.run)return;
+  }
+  await Promise.all(flights);if(run!==S.run)return;
+  finishUdp(run);
+}
+async function udpOne(run,i){
+  const delivered=!rnd();
+  spawnPkt('udp',run,{text:"D"+i,cls:"udp",dur:d(T.travel),lost:!delivered});
+  await sleep(d(T.travel));if(run!==S.run)return;
+  if(delivered){S.udpOk++;updMeters();log('udp',"✓ Datagrama "+i+" llegó");}
+  else log('udp',"✗ Datagrama "+i+" se perdió — nadie lo reenviará");
+}
+function finishUdp(run){
+  if(run!==S.run)return;
+  S.udpActive=false;S.tUdp=(performance.now()-S.udpStart)/1000;
+  $('udpTime').textContent=S.tUdp.toFixed(1)+"s";
+  S.finishedUdp=true;
+  log('udp',"🏁 UDP terminó: "+S.udpOk+"/"+S.total+" entregado(s) en "+S.tUdp.toFixed(1)+"s");
+  narr("🏁 <b>UDP ya terminó</b> ("+S.udpOk+"/"+S.total+" en "+S.tUdp.toFixed(1)+"s). ¿Y TCP? Todavía trabajando: cada ACK, cada timeout y cada reenvío le cuesta tiempo. <b>Rápido no siempre es lo mismo que exitoso…</b>");
+  checkBoth();
+}
+function checkBoth(){
+  if(S.finishedTcp&&S.finishedUdp){
+    narr("🔬 <b>Ambos terminaron.</b> TCP: "+S.total+"/"+S.total+" en "+S.tTcp.toFixed(1)+"s (con "+S.retries+" reenvíos y "+S.extras+" mensajes de protocolo extra). UDP: "+S.udpOk+"/"+S.total+" en "+S.tUdp.toFixed(1)+"s (cero protocolo). Ahora la pregunta correcta no es «¿quién es mejor?» sino <b>«¿quién cumplió SU misión?»</b> →");
+    $('verdictBtn').disabled=false;
+  }
+}
+
+/* ================== VEREDICTO ================== */
+ $('verdictBtn').onclick=showVerdict;
+
+function computeWinner(){
+  const esc=S.esc,ratio=S.total?S.udpOk/S.total:0;
+  if(esc.dns)return S.udpOk>=1?"udp":"tcp";
+  if(!esc.enVivo)return (S.udpOk===S.total)?"udp":"tcp";
+  if(ratio>=esc.tol)return"udp";
+  if(ratio>=esc.tol-0.25)return"empate";
+  return"tcp";
+}
+const WHY={
+ 'pdf|tcp':"Un archivo debe llegar <b>completo o no sirve de nada</b>: un PDF al que le falta 1 fragmento de 10 simplemente <b>no abre</b>. TCP repitió lo perdido hasta tener las 10 partes: tardó más, pero el contrato llega firmable. UDP terminó antes… con un archivo corrupto.",
+ 'pdf|udp':"¡Con red perfecta UDP barre! Sin handshake, sin ACKs: voló. Así funciona cuando la pérdida es 0% (redes locales limpias). Pero en Internet real <b>siempre</b> hay pérdida… y por eso tus descargas, tu correo y tus archivos viajan por TCP.",
+ 'video|udp':"En vivo, un fotograma que llega tarde <b>ya no se muestra</b>: caducó. Es mejor saltarlo y seguir (un hueco = un pequeño pixelado que el ojo perdona) que <b>congelar la imagen</b> esperando el reenvío. Por eso las videollamadas usan UDP.",
+ 'video|empate':"Esta red está tan mala que <b>ambos sufren</b>: UDP dejó demasiados huecos y TCP se congeló retransmitiendo. En la vida real, las apps de videollamada usan UDP <b>más sus propios trucos</b> (redundancia, buffers de jitter, códecs adaptativos) para aguantar esto.",
+ 'video|tcp':"Con tanta pérdida, UDP dejó la imagen inservible ("+Math.round(100*S.udpOk/S.total)+"% entregado). TCP, aunque lento y con congelaciones, al menos entregó el flujo completo. En redes pésimas, hasta lo «en vivo» sufre.",
+ 'game|udp':"Un juego necesita la posición <b>ahora</b>: la de hace 200 ms ya no interesa. Si un paquete se pierde, se ignora — llegará el siguiente. Que TCP reenvíe algo <b>ya viejo</b> es pagar tiempo por información inútil: eso se siente como <b>lag</b>.",
+ 'game|empate':"Red tan mala que ambos fallan: UDP pierde posiciones y TCP reenvía posiciones viejas (lag). Los juegos reales usan UDP y «maquillan» los huecos interpolando el movimiento.",
+ 'game|tcp':"Con esta red, UDP pierde tantas posiciones que el juego se ve a saltos; TCP garantiza todo… pero cada reenvío es un tirón de lag. Pierde el jugador igual.",
+ 'dns|udp':"Una consulta DNS cabe en <b>un solo datagrama</b>. ¿Para qué 3 apretones de mano (más el cierre) para preguntar una IP? UDP: ida, vuelta, resuelto. Y si se pierde, <b>la propia aplicación</b> reintenta — no hace falta todo el aparato de TCP.",
+ 'dns|tcp':"Hasta con reintentos falló la consulta UDP (¡mala suerte con "+S.loss+"% de pérdida!). TCP al final garantizó la respuesta… aunque saludar, confirmar y despedirse para una sola pregunta es matar moscas a cañonazos."
+};
+function previewTcp(){
+  const e=S.esc;
+  if(e.id==='pdf')return["good","✅ "+S.total+"/"+S.total+" partes → contrato íntegro, listo para firmar"];
+  if(e.id==='video')return S.retries>0?["warn","⚠️ "+S.total+"/"+S.total+" fotogramas… pero "+S.retries+" reenvío(s) = imagen congelada esperando"]:["good","✅ Red amable: sin pérdidas, video perfecto (y con garantías)"];
+  if(e.id==='game')return S.retries>0?["warn","⚠️ Todo llega, pero cada reenvío = tu personaje se «teletransporta» (lag)"]:["good","✅ Sin pérdidas: flujo garantizado"];
+  return["warn","⚠️ Funcionó, pero pagaste handshake + ACKs + FIN para 1 sola consulta"];
+}
+function previewUdp(){
+  const e=S.esc;
+  if(e.id==='pdf')return S.udpOk===S.total?["good","✅ ¡Llegó completo y más rápido! (solo posible con 0% de pérdida)"]:["warn","⚠️ "+S.udpOk+"/"+S.total+" partes → PDF dañado: no abre"];
+  if(e.id==='video'){const r=S.udpOk/S.total;return r>=.75?["good","✅ Video fluido: "+S.udpOk+"/"+S.total+" fotogramas; el ojo perdona los faltantes"]:["warn","⚠️ Solo "+S.udpOk+"/"+S.total+": imagen muy pixelada"];}
+  if(e.id==='game'){const r=S.udpOk/S.total;return r>=.5?["good","✅ Acción en tiempo real: "+S.udpOk+"/"+S.total+" posiciones al instante"]:["warn","⚠️ Solo "+S.udpOk+"/"+S.total+": movimiento a saltos"];}
+  return S.udpOk>=1?(S.udpRetries>0?["good","✅ IP resuelta — tras "+S.udpRetries+" reintento(s) de la APLICACIÓN"]:["good","✅ IP resuelta a la primera: www.ucol.mx = 148.202.1.1"]):["warn","❌ Se agotaron los reintentos de la aplicación"];
+}
+
+function showVerdict(){
+  if(clock){clearInterval(clock);clock=null;}
+  const w=computeWinner();
+  const wName=w==='tcp'?"🐢 TCP":(w==='udp'?"🐇 UDP":"🤝 Empate técnico");
+  const pf=$('predFb');
+  const acierto=S.pred===w;
+  pf.className="predfb"+(acierto?" good":"");
+  const predTxt=S.pred==='tcp'?"🐢 TCP":(S.pred==='udp'?"🐇 UDP":"🤝 Empate");
+  pf.innerHTML=acierto
+    ?"🎯 <b>¡Acertaste!</b> Predijiste "+predTxt+" y el veredicto fue "+wName+". Ese criterio —«¿qué necesita ESTA aplicación?»— es exactamente el que usa un ingeniero de redes."
+    :"🎯 <b>Tu predicción fue "+predTxt+"… y el veredicto fue "+wName+".</b> ¡No pasa nada! Las intuiciones equivocadas son las que más enseñan: lee abajo el porqué.";
+  const pt=previewTcp(),pu=previewUdp();
+  $('vgrid').innerHTML=
+    '<div class="vcard" style="border-color:var(--tcp)">'+
+      '<h3>🐢 Resultado de TCP</h3>'+
+      '<div class="rows">'+
+        '<div><span>Entregado</span><b>'+S.tcpOk+'/'+S.total+'</b></div>'+
+        '<div><span>Tiempo</span><b>'+S.tTcp.toFixed(1)+'s</b></div>'+
+        '<div><span>Reenvíos</span><b>'+S.retries+'</b></div>'+
+        '<div><span>Mensajes de protocolo extra</span><b>'+S.extras+'</b></div>'+
+      '</div>'+
+      '<div class="preview '+pt[0]+'">'+pt[1]+'</div>'+
+    '</div>'+
+    '<div class="vcard" style="border-color:var(--udp)">'+
+      '<h3>🐇 Resultado de UDP</h3>'+
+      '<div class="rows">'+
+        '<div><span>Entregado</span><b>'+S.udpOk+'/'+S.total+'</b></div>'+
+        '<div><span>Tiempo</span><b>'+S.tUdp.toFixed(1)+'s</b></div>'+
+        '<div><span>Reenvíos</span><b>0 (no existen)</b></div>'+
+        '<div><span>Mensajes de protocolo extra</span><b>0</b></div>'+
+      '</div>'+
+      '<div class="preview '+pu[0]+'">'+pu[1]+'</div>'+
+    '</div>';
+  const why=WHY[S.esc.id+"|"+w]||"";
+  $('winnerCard').innerHTML=
+    '<h3>🏆 Para esta misión'+(w==='empate'?'… nadie gana claro:':(' gana '+wName+':'))+'</h3><p>'+why+'</p>';
+  $('arena').hidden=true;$('verdict').hidden=false;
+  window.scrollTo({top:$('verdict').offsetTop-10,behavior:'smooth'});
+}
+
+/* ================== RESET ================== */
+function resetAll(){
+  S.run++;
+  if(clock){clearInterval(clock);clock=null;}
+  $('arena').hidden=true;$('verdict').hidden=true;$('setup').hidden=false;
+  S.pred=null;
+  document.querySelectorAll(".pred-btn").forEach(x=>x.setAttribute("aria-pressed","false"));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+ $('resetBtn2').onclick=resetAll;
+ $('againBtn').onclick=resetAll;
+</script>
+</body>
+</html>
