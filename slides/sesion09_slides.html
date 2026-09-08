@@ -255,6 +255,13 @@
 
   /* evidencia de entrega */
   .evidence-checklist{border:1.5px solid var(--blue); background:#EEF3FA; border-radius:10px; padding:1.2vh 1.4vw; margin-top:1.2vh;}
+
+  /* retos especiales por equipo */
+  .challenge-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1vw; margin-top:1.4vh;}
+  .challenge-card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.4vh 1.2vw;}
+  .challenge-num{width:26px; height:26px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:13px; margin-bottom:.8vh;}
+  .challenge-card h4{font-size:clamp(13.5px,1vw,15.5px); margin:0 0 .5vh; color:var(--navy);}
+  .challenge-card p{font-size:clamp(11.5px,.82vw,13px); color:var(--ink-soft); line-height:1.35; margin:0;}
   .evidence-checklist ul{margin:.4vh 0 0; padding-left:1.4vw;}
   .evidence-checklist li{margin-bottom:.3vh; font-size:clamp(13px,.92vw,15px); color:var(--ink); line-height:1.4;}
   .evidence-checklist b{color:var(--navy);}
@@ -402,6 +409,7 @@
       <div class="num-row"><div class="num-badge">1</div><div class="s-body">Integrar arquitectura, protocolos, sockets y multi-cliente en un proyecto funcional propio.</div></div>
       <div class="num-row"><div class="num-badge">2</div><div class="s-body">Dividir el trabajo en equipo usando control de versiones (Git/GitHub).</div></div>
       <div class="num-row"><div class="num-badge">3</div><div class="s-body">Evaluar su propio desempeño y el de sus compañeros de forma honesta y constructiva.</div></div>
+      <div class="num-row"><div class="num-badge">4</div><div class="s-body">Documentar y defender su propio proceso — no un proyecto genérico, el suyo — frente al grupo.</div></div>
     </div>
   </section>
 
@@ -473,7 +481,7 @@
   </section>
 
   <!-- 6: requisitos -->
-  <section class="slide light" data-index="5" data-note="Estos son los requisitos mínimos (base) — menciona que hay retos opcionales para quien quiera ir más lejos, están en el artefacto del reto.">
+  <section class="slide light" data-index="5" data-note="Estos son los requisitos base. No menciones todavía cuál es el reto especial de cada equipo — eso se revela por sorteo más adelante, justo antes de que se pongan a trabajar.">
     <span class="eyebrow">Qué debe hacer su chat</span>
     <h2 class="s-title">Requisitos del reto</h2>
     <ul class="bullets">
@@ -481,19 +489,21 @@
       <li><strong>Broadcast:</strong> cada mensaje llega a todos los demás clientes conectados.</li>
       <li><strong>Manejo de errores:</strong> si un cliente se desconecta abruptamente, el chat sigue funcionando para los demás.</li>
       <li><strong>Trabajo en equipo real:</strong> repositorio compartido en GitHub, con commits de cada integrante.</li>
+      <li><strong>Infografía de cierre:</strong> documentando su propio proceso — no es opcional, es parte del reto.</li>
     </ul>
-    <div class="idea-clave">Retos opcionales (para subir de nivel): nombres de usuario, marca de tiempo en cada mensaje, comando para salir del chat. Todos los detalles están en el artefacto del reto.</div>
+    <div class="idea-clave">Además, cada equipo tiene un <strong>reto especial asignado</strong> — no opcional, no de libre elección. Se revela por sorteo antes de que empiecen a trabajar.</div>
   </section>
 
   <!-- 7: rúbrica -->
-  <section class="slide light" data-index="6" data-note="Explica que esta rúbrica es la misma escala oficial que usan en todo el curso — no es nueva ni distinta. Menciona que la versión completa con los 4 niveles está en el artefacto.">
+  <section class="slide light" data-index="6" data-note="Explica que esta rúbrica es la misma escala oficial que usan en todo el curso — no es nueva ni distinta. Menciona que la versión completa con los 4 niveles está en el artefacto. El 20% de infografía y presentación es nuevo — dedícale una frase clara: no evalúa qué tan bonita quedó, evalúa si lo que cuentan ahí es real y lo pueden defender.">
     <span class="eyebrow">Cómo se evalúa</span>
     <h2 class="s-title">Rúbrica del reto integrador</h2>
     <div class="rubric-list">
-      <div class="rubric-item"><div class="rubric-pct">30%</div><p><strong>Funcionalidad:</strong> el chat conecta múltiples clientes y hace broadcast correctamente.</p></div>
-      <div class="rubric-item"><div class="rubric-pct">25%</div><p><strong>Manejo de errores:</strong> una desconexión abrupta no tumba el servidor.</p></div>
-      <div class="rubric-item"><div class="rubric-pct">25%</div><p><strong>Código y organización:</strong> nombres claros, comentarios, estructura legible.</p></div>
-      <div class="rubric-item"><div class="rubric-pct">20%</div><p><strong>Trabajo en equipo:</strong> repositorio compartido, commits de todos, README claro.</p></div>
+      <div class="rubric-item"><div class="rubric-pct">25%</div><p><strong>Funcionalidad:</strong> el chat conecta múltiples clientes y hace broadcast correctamente.</p></div>
+      <div class="rubric-item"><div class="rubric-pct">20%</div><p><strong>Manejo de errores:</strong> una desconexión abrupta no tumba el servidor.</p></div>
+      <div class="rubric-item"><div class="rubric-pct">20%</div><p><strong>Código y organización:</strong> nombres claros, comentarios, estructura legible — incluye su reto especial asignado, correctamente integrado.</p></div>
+      <div class="rubric-item"><div class="rubric-pct">15%</div><p><strong>Trabajo en equipo:</strong> repositorio compartido, commits de todos, README claro.</p></div>
+      <div class="rubric-item"><div class="rubric-pct">20%</div><p><strong>Infografía y presentación:</strong> documentan su propio proceso (no uno genérico) y lo defienden con claridad.</p></div>
     </div>
   </section>
 
@@ -510,9 +520,22 @@
   </section>
 
   <!-- 8: cómo entregar -->
-  <section class="slide light" data-index="8" data-note="Esto es nuevo — antes no existía esta slide. Explícala completa ANTES de que se pongan a trabajar, para que graben su evidencia sobre la marcha y no al final con prisa. El video es la prueba más fuerte porque una captura fija se puede fingir; ver los mensajes cruzarse en tiempo real, no.">
-    <span class="eyebrow">Antes de que empiecen</span>
-    <h2 class="s-title">Cómo van a entregar el reto</h2>
+  <!-- 8: la infografia -->
+  <section class="slide light" data-index="8" data-note="Esto es nuevo. Insiste en un punto: documentar el error MIENTRAS pasa, no reconstruirlo de memoria al final — por eso se los explicas hoy, antes de que empiecen a trabajar. Aclara que no se evalúa qué tan bonita queda, se evalúa si es real y la pueden defender.">
+    <span class="eyebrow">La otra mitad del reto</span>
+    <h2 class="s-title">La infografía de cierre</h2>
+    <div>
+      <div class="num-row"><div class="num-badge">1</div><div class="s-body"><strong>La arquitectura de SU chat</strong> — cómo viaja un mensaje en su propia implementación, no un diagrama genérico de cómo funciona un chat en general.</div></div>
+      <div class="num-row"><div class="num-badge">2</div><div class="s-body"><strong>Un error real que vivieron y cómo lo resolvieron</strong> — anótenlo apenas les pase, no lo reconstruyan de memoria al final.</div></div>
+      <div class="num-row"><div class="num-badge">3</div><div class="s-body"><strong>Quién hizo qué</strong> — sin ser delator, solo claridad real del aporte de cada integrante.</div></div>
+    </div>
+    <div class="idea-clave" style="margin-top:2vh;">No se evalúa qué tan bonita queda — se evalúa si es real y la pueden defender frente al grupo. Pueden apoyarse en IA para construirla, igual que en sesiones anteriores: investiguen, verifiquen, y citen si usan algo de fuera.</div>
+  </section>
+
+  <!-- 9: como presentan -->
+  <section class="slide light" data-index="9" data-note="Explícala completa ANTES de que se pongan a trabajar. Todo es en vivo — sin video de respaldo. Insiste en que lleguen con su servidor y clientes ya listos para arrancar, para no perder minutos de su presentación configurando.">
+    <span class="eyebrow">La siguiente sesión</span>
+    <h2 class="s-title">Cómo van a presentar</h2>
 
     <div class="term-grid-s cols-3">
       <div class="term-mock-s">
@@ -530,43 +553,61 @@
     </div>
 
     <div class="evidence-checklist">
-      <b>📹 Graben un video corto de pantalla (1-2 min) — no una captura fija.</b> Una foto se puede fingir; verlos escribir y que el mensaje aparezca del otro lado, en vivo, no.
+      <b>🎤 5-7 minutos por equipo, todo en vivo:</b> demo de su chat + su infografía + preguntas de sus propios compañeros de clase, no solo del profesor.
       <ul>
-        <li>Las 3 terminales visibles <strong>al mismo tiempo</strong>: el servidor + al menos 2 clientes.</li>
-        <li>Un mensaje escrito en un cliente, apareciendo en tiempo real en los demás.</li>
-        <li>Una desconexión abrupta (cierren una terminal a la fuerza) — el servidor y los demás clientes siguen funcionando.</li>
+        <li>Lleguen con su servidor y sus clientes ya listos para arrancar — no pierdan sus minutos configurando frente al grupo.</li>
+        <li>Las 3 terminales visibles al mismo tiempo: servidor + 2 o más clientes reales.</li>
+        <li>Muestren también la desconexión abrupta — es evidencia de que su try/except funciona de verdad.</li>
+        <li>Si algo falla técnicamente en el momento, expliquen qué está pasando mientras lo resuelven — un tropiezo no se penaliza, no poder explicar su propio código sí.</li>
       </ul>
     </div>
 
-    <div class="cta-box">Suban el video a la tarea de Classroom (o un link de Drive si pesa mucho) + el enlace de su repositorio — un solo integrante entrega por equipo, pero el repo debe reflejar el trabajo de todos.</div>
+    <div class="cta-box">Suban el enlace de su repositorio a Classroom antes de la próxima sesión — un solo integrante sube por equipo, pero el repo debe reflejar el trabajo de todos.</div>
   </section>
 
-  <!-- 9: transition -->
-  <section class="slide dark" data-index="9" data-note="Comparte el enlace del artefacto del reto en Classroom. Confirma que los equipos ya estén formados antes de que empiecen a trabajar.">
+  <!-- 10: reto especial -->
+  <section class="slide light" data-index="10" data-note="Aquí se hace el sorteo en vivo, justo antes de que se pongan a trabajar. Cada equipo saca su reto al azar — nadie elige el suyo. Recuérdales que va incluido dentro de 'Código y organización' en la rúbrica, no es aparte.">
+    <span class="eyebrow">Para que no sea el mismo chat 6 veces</span>
+    <h2 class="s-title">Su reto especial</h2>
+    <div class="challenge-grid">
+      <div class="challenge-card"><div class="challenge-num">1</div><h4>Nombres de usuario</h4><p>Cada cliente elige un nombre al conectarse; los mensajes muestran el nombre, no la IP.</p></div>
+      <div class="challenge-card"><div class="challenge-num">2</div><h4>Marca de tiempo</h4><p>Cada mensaje se muestra con la hora exacta en que se envió.</p></div>
+      <div class="challenge-card"><div class="challenge-num">3</div><h4>Historial para nuevos</h4><p>Al conectarse alguien, el servidor le manda los últimos 5 mensajes.</p></div>
+      <div class="challenge-card"><div class="challenge-num">4</div><h4>Salida limpia</h4><p><code>/salir</code> cierra la conexión y avisa a los demás que ese usuario se fue.</p></div>
+      <div class="challenge-card"><div class="challenge-num">5</div><h4>Lista de conectados</h4><p><code>/quienes</code> muestra quién está conectado en ese momento.</p></div>
+      <div class="challenge-card"><div class="challenge-num">6</div><h4>Límite de sala</h4><p>El servidor rechaza a un cliente nuevo si ya hay, por ejemplo, 5 personas conectadas.</p></div>
+    </div>
+    <div class="cta-box">Cada equipo saca su reto por sorteo, en vivo, ahora mismo — nadie elige el suyo. Es obligatorio, no opcional, y va incluido en "Código y organización" de la rúbrica.</div>
+  </section>
+
+  <!-- 11: transition -->
+
+  <section class="slide dark" data-index="11" data-note="Comparte el enlace del artefacto del reto en Classroom. Confirma que los equipos ya estén formados antes de que empiecen a trabajar.">
     <span class="eyebrow">Ahora es su turno</span>
     <h2 class="s-title">Formen equipos y empiecen</h2>
     <ul class="bullets" style="color:#D7E3F5;">
       <li>Formen equipos de 3-4 personas</li>
-      <li>Abran el artefacto del reto: instrucciones completas, código de referencia y rúbrica</li>
+      <li>Abran el artefacto del reto: instrucciones completas, código de referencia, rúbrica e infografía</li>
       <li>Empiecen por el servidor con broadcast — el resto ya lo dominan</li>
     </ul>
-    <div class="cta-box">Accedan desde Classroom → Sesión 09 — Reto integrador &nbsp;·&nbsp; Entrega: próxima sesión</div>
+    <div class="cta-box">Accedan desde Classroom → Sesión 09 — Reto integrador &nbsp;·&nbsp; Presentan: próxima sesión</div>
   </section>
 
-  <!-- 10: cierre -->
-  <section class="slide light" data-index="10" data-note="Cierre distinto a las demás sesiones — no hay checklist de evidencia individual todavía, porque el reto se entrega la próxima sesión. Motiva sin presionar.">
+  <!-- 12: cierre -->
+  <section class="slide light" data-index="12" data-note="Cierre distinto a las demás sesiones — no hay checklist de evidencia individual todavía, porque el reto se presenta la próxima sesión. Motiva sin presionar. Insiste una última vez en anotar el error real mientras les pasa, no al final.">
     <span class="eyebrow">Para cerrar por hoy</span>
     <h2 class="s-title">Lo que sigue</h2>
     <p class="resolve-box">🔁 <strong>Recuerden:</strong> no están aprendiendo nada nuevo hoy — están usando ocho sesiones de trabajo para construir algo que de verdad funciona. Ese es el punto del reto.</p>
     <ul class="bullets">
       <li>Trabajen en su repositorio compartido esta semana</li>
-      <li>Prueben su chat con 3 o más clientes reales antes de entregar</li>
-      <li>La próxima sesión: evaluación parcial de la Unidad I</li>
+      <li>Prueben su chat con 3 o más clientes reales antes de presentar</li>
+      <li>Anoten su error real apenas les pase — no lo reconstruyan de memoria después</li>
+      <li>La próxima sesión: presentan en equipo — es la evaluación práctica de la Unidad I</li>
     </ul>
   </section>
 
-  <!-- 11: references -->
-  <section class="slide light" data-index="11" data-note="Slide de referencia — normalmente no se proyecta en clase, queda como trazabilidad académica (APA 7).">
+  <!-- 12: references -->
+  <section class="slide light" data-index="13" data-note="Slide de referencia — normalmente no se proyecta en clase, queda como trazabilidad académica (APA 7).">
     <span class="eyebrow">Fuentes de esta sesión</span>
     <h2 class="s-title">Referencias (APA 7.ª ed.)</h2>
     <div class="ref-list" id="refList"></div>
