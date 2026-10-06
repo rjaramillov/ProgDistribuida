@@ -1,672 +1,214 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anatomía de una llamada gRPC · Sesión 13</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De dónde salen las cajas</title>
 <style>
-:root{
-  --bg:#F7F9FC; --panel:#fff; --ink:#10202F; --soft:#45586B;
-  --navy:#0B2545; --blue:#2E5CA6; --blue-tint:#E7EEF9;
-  --teal:#17A398; --teal-text:#0C6259; --teal-tint:#E2F5F2;
-  --amber:#E8A33D; --amber-tint:#FCEFD9; --amber-dk:#8A5A00;
-  --danger:#C0392B; --danger-tint:#FBEAE8; --line:#D7DEE8;
-  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif; --disp:'Space Grotesk',sans-serif;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px}
-.app{max-width:1420px;margin:0 auto;padding:14px 22px 24px;display:flex;flex-direction:column;gap:12px}
-
-/* ===== header ===== */
-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--teal-text);text-transform:uppercase;font-weight:600}
-h1{font-family:var(--disp);font-size:clamp(19px,2vw,25px);color:var(--navy);margin:2px 0 0}
-.sub{margin:3px 0 0;color:var(--soft);font-size:13px}
-.controls{display:flex;gap:8px;align-items:center}
-.btn{border:none;border-radius:999px;padding:9px 16px;font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
-.btn.icon{width:38px;height:38px;padding:0;justify-content:center;font-size:17px}
-.btn.primary{background:var(--navy);color:#fff}
-.btn.primary:hover{background:#12345C}
-.btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--soft)}
-.btn.ghost:hover{border-color:var(--blue);color:var(--blue)}
-.btn:disabled{opacity:.35;cursor:default}
-
-/* ===== stepper ===== */
-.stepper{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:5px 6px;gap:2px;overflow-x:auto}
-.stp{flex:1;min-width:66px;border:none;background:none;border-radius:8px;padding:5px 4px 4px;cursor:pointer;font-family:var(--sans);display:flex;flex-direction:column;align-items:center;gap:3px}
-.stp .dot{width:20px;height:20px;border-radius:50%;background:#E1E7EF;color:var(--soft);font-family:var(--disp);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center}
-.stp .lb{font-size:10.5px;color:var(--soft);white-space:nowrap;font-weight:500}
-.stp:hover .dot{background:#CBD5E1}
-.stp.done .dot{background:var(--blue);color:#fff}
-.stp.cur{background:var(--blue-tint)}
-.stp.cur .dot{background:var(--navy);color:#fff}
-.stp.cur .lb{color:var(--navy);font-weight:700}
-
-/* ===== escenario ===== */
-.stage{display:grid;grid-template-columns:210px 1fr 210px;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px}
-.snode{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
-.snode .disc{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:19px;color:#fff;background:#C6CEDA;transition:box-shadow .3s,background .3s}
-.snode.cli .disc{background:var(--blue)}
-.snode.srv.on .disc{background:var(--teal)}
-.snode.active .disc{box-shadow:0 0 0 7px rgba(232,163,61,.30)}
-.snode .nm{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--navy)}
-.snode .dt{font-size:11px;color:var(--soft);line-height:1.3}
-.layerchip{margin-top:5px;font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:999px;background:#EEF2F7;color:var(--soft);min-height:22px;display:inline-flex;align-items:center}
-.layerchip.mine{background:var(--teal-tint);color:var(--teal-text);font-weight:600}
-.layerchip.proto{background:var(--blue-tint);color:var(--blue);font-weight:600}
-.layerchip.runtime{background:var(--amber-tint);color:var(--amber-dk);font-weight:600}
-.wirebox{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.wlabel{font-family:var(--mono);font-size:10.5px;color:var(--soft)}
-.wire{position:relative;height:36px;width:100%}
-.wire .cable{position:absolute;left:0;right:0;top:50%;height:3px;transform:translateY(-50%);border-radius:2px;background:#DCE3EC}
-.wirebox.connected .cable{background:repeating-linear-gradient(90deg,var(--blue) 0 8px,#DCE3EC 8px 16px);background-size:16px 3px;animation:flow 1s linear infinite}
-.wirebox.hot .cable{box-shadow:0 0 10px rgba(46,92,166,.55)}
-@keyframes flow{to{background-position:16px 0}}
-.pkt{position:absolute;top:50%;transform:translate(-50%,-50%);left:6%;border-radius:999px;padding:5px 12px;font-family:var(--mono);font-weight:600;font-size:11.5px;color:#fff;opacity:0;white-space:nowrap;z-index:2;pointer-events:none;transition:left 1.25s cubic-bezier(.45,.05,.55,.95),opacity .5s,filter .5s}
-#pktReq{background:var(--blue)}
-#pktRes{background:var(--teal);left:94%}
-#pktReq.forming{left:6%;opacity:1;animation:glowB 1.2s ease-out infinite}
-#pktRes.forming{left:94%;opacity:1;animation:glowT 1.2s ease-out infinite}
-@keyframes glowB{0%{box-shadow:0 0 0 0 rgba(46,92,166,.5)}100%{box-shadow:0 0 0 10px rgba(46,92,166,0)}}
-@keyframes glowT{0%{box-shadow:0 0 0 0 rgba(23,163,152,.5)}100%{box-shadow:0 0 0 10px rgba(23,163,152,0)}}
-#pktReq.travelR{left:94%;opacity:1}
-#pktRes.travelL{left:6%;opacity:1}
-#pktReq.arrivedR{left:94%;opacity:.4;filter:grayscale(.6);animation:none}
-#pktRes.arrivedL{left:6%;opacity:1;animation:none}
-.pkt.consumed{opacity:0;animation:none}
-.nettag{font-family:var(--mono);font-size:10.5px;color:var(--navy);background:var(--amber-tint);border:1px solid #EAC98F;border-radius:999px;padding:3px 12px;opacity:0;transition:opacity .4s;max-width:100%;text-align:center}
-.nettag.show{opacity:1}
-
-/* ===== paneles ===== */
-.panels{display:grid;grid-template-columns:1fr 400px 1fr;gap:14px;align-items:stretch}
-.pane{background:#fff;border:1.5px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;transition:border-color .3s, box-shadow .3s}
-.pane.turn{border-color:var(--blue);box-shadow:0 4px 16px rgba(46,92,166,.18)}
-.pane.star{border-color:var(--teal);box-shadow:0 6px 22px rgba(23,163,152,.32)}
-.pane-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line);background:#FBFCFE;flex-wrap:wrap;gap:6px}
-.pane-head h2{font-family:var(--mono);font-size:12.5px;color:var(--navy);margin:0;font-weight:600}
-.turnlab{display:none;font-family:var(--mono);font-size:10px;color:var(--amber-dk);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
-.pane.turn .turnlab{display:inline;animation:soft 1.4s ease-in-out infinite}
-.pane.star .turnlab{color:var(--teal-text)}
-@keyframes soft{50%{opacity:.45}}
-.legend{display:flex;gap:9px;font-size:10px;color:var(--soft);flex-wrap:wrap}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-.lg-mine{background:var(--teal)} .lg-proto{background:var(--blue)} .lg-runtime{background:var(--amber)}
-.code{overflow:auto;padding:9px 0;font-family:var(--mono);font-size:12.3px;line-height:1.62;max-height:600px}
-.ln{display:flex;padding:0 12px 0 0;position:relative;min-height:20px;align-items:baseline}
-.ln .n{width:32px;text-align:right;padding-right:10px;color:#A6B2C2;flex-shrink:0;user-select:none;font-size:10px}
-.ln code{font-family:inherit;white-space:pre;color:#2A3B4D}
-.ln[data-tip]{cursor:help}
-.ln[data-tip]:hover code{color:var(--navy)}
-.ln.mine{background-color:rgba(23,163,152,.09);box-shadow:inset 3px 0 0 var(--teal)}
-.ln.proto{background-color:rgba(46,92,166,.10);box-shadow:inset 3px 0 0 var(--blue)}
-.ln.runtime{background-color:rgba(232,163,61,.13);box-shadow:inset 3px 0 0 var(--amber)}
-.ln.active{background-image:linear-gradient(rgba(232,163,61,.22),rgba(232,163,61,.22));outline:2px solid var(--amber);outline-offset:-2px}
-.ln.active .n{color:var(--amber-dk);font-weight:700}
-code .kw{color:#0E7490;font-weight:600}
-code .str{color:#B45309}
-code .num{color:#B45309}
-code .typ{color:#2E5CA6;font-weight:600}
-code .cmt{color:#94A3B3;font-style:italic}
-
-/* ===== narrativa ===== */
-.narr{background:#fff;border:1.5px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow-y:auto;max-height:760px}
-.narr-head{padding:13px 16px 11px;border-bottom:1px solid var(--line)}
-.stepmeta{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--teal-text);font-weight:600;text-transform:uppercase}
-h3#stepTitle{font-family:var(--disp);font-size:17.5px;color:var(--navy);margin:4px 0 8px;line-height:1.25}
-.who{display:flex;flex-wrap:wrap;gap:6px}
-.wchip{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 10px;border-radius:999px}
-.wchip.mine{background:var(--teal-tint);color:var(--teal-text)}
-.wchip.proto{background:var(--blue-tint);color:var(--blue)}
-.wchip.runtime{background:var(--amber-tint);color:var(--amber-dk)}
-.fnbox{margin-top:9px;font-family:var(--mono);font-size:11px;background:var(--navy);color:#F5D9A6;border-radius:8px;padding:6px 10px;display:flex;gap:7px;align-items:baseline}
-.fnbox .fx{color:var(--teal);font-weight:700;flex-shrink:0}
-.fnbox span:last-child{word-break:break-word}
-.narr-desc{padding:11px 16px 6px;font-size:13px;line-height:1.62;color:var(--ink)}
-.narr-desc b{color:var(--teal-text)}
-.narr-desc code{font-family:var(--mono);background:#EEF2F7;border:1px solid var(--line);padding:0 4px;border-radius:4px;font-size:11px;color:var(--navy)}
-.bytes{margin:6px 16px 10px;background:#0D1B2A;border-radius:10px;padding:10px 12px}
-.bytes h5{margin:0 0 8px;font-family:var(--mono);font-size:9.5px;color:#8FB3D9;letter-spacing:.1em;text-transform:uppercase}
-.brow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
-.bseg{display:flex;flex-direction:column;gap:3px}
-.bseg .hex{display:flex;gap:3px;flex-wrap:wrap}
-.bseg .hex b{font-family:var(--mono);background:#E8A33D;color:#1F1400;border-radius:5px;padding:2px 6px;font-size:12px;font-weight:600}
-.bseg .cap{font-size:9.5px;color:#9FB6D6;text-align:center;max-width:120px;line-height:1.3;margin:0 auto}
-.btot{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--amber)}
-.vars{padding:2px 16px 8px}
-.vh{font-family:var(--mono);font-size:9.5px;color:var(--soft);letter-spacing:.1em;text-transform:uppercase;margin:7px 0 4px;font-weight:600}
-.var{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;background:#F2F6FA;border:1px solid var(--line);border-radius:8px;padding:5px 9px;margin-bottom:4px}
-.var .vn{color:var(--navy);font-weight:600;flex-shrink:0}
-.var .vv{color:var(--teal-text);text-align:right;word-break:break-word}
-.var.bytesv .vv{color:var(--amber-dk)}
-.var.wait .vn,.var.wait .vv{color:var(--amber-dk)}
-.vempty{font-family:var(--mono);font-size:10.5px;color:#A6B2C2;padding:3px 0}
-.var.pop{animation:pop .4s ease}
-@keyframes pop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
-.term{margin:6px 16px 12px;background:#0D1B2A;border-radius:10px;padding:9px 12px;font-family:var(--mono);font-size:11.5px;color:#D7E3F5;line-height:1.65}
-.term-h{font-size:9px;color:#8FB3D9;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
-.term-out{white-space:pre-wrap;min-height:38px}
-.term .p{color:var(--teal);font-weight:600}
-.term .dim{color:#5E7392}
-.term .out{color:var(--amber);font-weight:600}
-.caret{display:inline-block;width:7px;height:12px;background:var(--teal);animation:blink 1s steps(1) infinite;vertical-align:-2px}
-@keyframes blink{50%{opacity:0}}
-
-/* ===== quiz ===== */
-.quiz{margin:2px 16px 14px;border:1.5px dashed var(--teal);border-radius:12px;padding:12px;display:none}
-.quiz.show{display:block;animation:pop .45s ease}
-.quiz h4{margin:0 0 9px;font-family:var(--disp);font-size:14px;color:var(--teal-text)}
-.q{margin-bottom:11px}
-.q:last-child{margin-bottom:0}
-.q p{margin:0 0 5px;font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.4}
-.qopt{text-align:left;background:#F2F6FA;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:var(--sans);display:block;width:100%;margin-bottom:4px;color:var(--ink);line-height:1.4}
-.qopt:hover{border-color:var(--blue)}
-.qopt.ok{background:var(--teal-tint);border-color:var(--teal);color:var(--teal-text);font-weight:600}
-.qopt.bad{background:var(--danger-tint);border-color:var(--danger);color:var(--danger)}
-.qexp{font-size:11px;color:var(--soft);margin-top:5px;display:none;line-height:1.45}
-.q.done .qexp{display:block}
-.q.done .qopt{cursor:default;opacity:.7}
-.q.done .qopt.ok{opacity:1}
-
-/* tooltip */
-#tip{position:fixed;z-index:99;background:var(--navy);color:#E8EEF7;font-size:11.5px;line-height:1.45;padding:7px 11px;border-radius:8px;max-width:290px;pointer-events:none;opacity:0;transition:opacity .12s;box-shadow:0 8px 20px rgba(11,37,69,.35);font-family:var(--sans)}
-#tip.show{opacity:1}
-#tip b{color:var(--amber);font-family:var(--mono);font-size:10.5px}
-
-@media (max-width:1100px){
-  .panels{grid-template-columns:1fr}
-  .stage{grid-template-columns:1fr}
-  .narr{max-height:none}
-}
-@media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-}
+  :root{--navy:#0B2545; --ink:#10202F; --soft:#45586B; --amber:#E8A33D; --green:#1E8E5A; --blue:#2E5CA6; --red:#C0392B; --bg:#F6F8FB;}
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:'Segoe UI', system-ui, sans-serif;}
+  body{display:flex; flex-direction:column; padding:3vh 3vw 2vh; overflow:hidden;}
+  h1{margin:0; font-size:min(2.7vw,6vh); color:var(--navy); white-space:nowrap;}
+  .head{display:flex; justify-content:space-between; align-items:flex-start; gap:2vw;}
+  h1 span{color:var(--green);}
+  .sub{margin:.4vh 0 1.6vh; font-size:min(1.6vw,3vh); color:var(--soft);}
+  .row{flex:1; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:1vw; min-height:0;}
+  .step{background:#fff; border-radius:18px; box-shadow:0 2px 10px rgba(11,37,69,.08); padding:1.6vh 1vw; display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.1vh; min-height:0; opacity:.08; transform:translateY(12px); transition:opacity .45s, transform .45s;}
+  .step.on{opacity:1; transform:none;}
+  .arrow{align-self:center; font-size:clamp(28px,3vw,48px); color:var(--amber); opacity:.08; transition:opacity .45s;}
+  .arrow.on{opacity:1;}
+  .num{width:1.9em; height:1.9em; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:min(1.4vw,2.6vh);}
+  .emoji{font-size:min(4.5vw,7.5vh); line-height:1;}
+  .what{font-size:min(1.7vw,3.3vh); font-weight:700; color:var(--navy); line-height:1.2;}
+  .code{font-family:Consolas, 'Courier New', monospace; font-size:min(1.05vw,2.1vh); background:#0D1B2A; color:#D7E3F5; border-radius:10px; padding:1vh .8vw; text-align:left; white-space:pre-wrap; overflow-wrap:anywhere; width:100%;}
+  .code b{color:#FFD08A; font-weight:700;}
+  /* la caja */
+  .box{width:100%; max-width:260px; border:4px solid var(--green); border-radius:12px; background:#EAF7EF; position:relative; padding:3.4vh .8vw 1.1vh;}
+  .box .lid{position:absolute; top:-4px; left:-4px; right:-4px; background:var(--green); color:#fff; border-radius:10px 10px 0 0; padding:.5vh 0; font-weight:700; font-family:Consolas, monospace; font-size:min(1.1vw,2.2vh);}
+  .slot{border:3px dashed var(--green); border-radius:8px; background:#fff; padding:.8vh .5vw; font-size:min(1.15vw,2.3vh); min-height:5.5vh; display:flex; flex-direction:column; justify-content:center;}
+  .slot .lbl{font-family:Consolas, monospace; font-weight:700; color:var(--green); font-size:.9em;}
+  .slot .val{color:var(--ink); margin-top:.4vh;}
+  .slot .empty{color:#9AA8B8; font-style:italic;}
+  .bytes{font-family:Consolas, monospace; font-size:min(1.3vw,2.6vh); color:#7A4E00; background:#FCEFD9; border-radius:10px; padding:1vh .8vw;}
+  .note{font-size:min(1.2vw,2.3vh); color:var(--soft); line-height:1.35;}
+  .bottom{margin-top:1.6vh; display:grid; grid-template-columns:1fr 1fr; gap:1.5vw; opacity:.08; transition:opacity .45s;}
+  .bottom.on{opacity:1;}
+  .card{border-radius:14px; padding:1.2vh 1.2vw; font-size:min(1.35vw,2.6vh); line-height:1.35;}
+  .card.ok{background:#EAF7EF; border-left:6px solid var(--green);}
+  .card.bad{background:#FBEAE8; border-left:6px solid var(--red);}
+  .card code{font-family:Consolas, monospace; background:#fff; border-radius:5px; padding:0 5px;}
+  .ctrl{display:flex; gap:8px; flex-shrink:0;}
+  .ctrl button{border:none; background:var(--navy); color:#fff; border-radius:999px; padding:10px 18px; font-size:16px; font-weight:700; cursor:pointer;}
+  .ctrl button.sec{background:#fff; color:var(--navy); box-shadow:inset 0 0 0 2px #D7DEE8;}
+  .hint{font-size:12px; color:#8193A8; text-align:right; margin-top:4px;}
+  .screen{flex:1; display:none; flex-direction:column; min-height:0;}
+  .screen.cur{display:flex;}
+  #scr1 .row{grid-template-columns:minmax(0,.8fr) auto minmax(0,.8fr) auto minmax(0,1.05fr) auto minmax(0,1.4fr);}
+  .file .fb{overflow-wrap:anywhere;}
+  .sub code, .note code, .foot code{font-family:Consolas, monospace; background:#E9EEF5; border-radius:4px; padding:0 4px;}
+  code.fn{font-family:Consolas, monospace; font-size:.9em; background:#E9EEF5; border-radius:6px; padding:0 6px; color:var(--navy);}
+  .code .g, .file.g .fh{color:#7EE2A8;} .code .bl{color:#9CC3FF;} .code .dim{color:#7F93AD;}
+  .file{width:100%; border-radius:10px; overflow:hidden; text-align:left; border:3px solid var(--green);}
+  .file.bl{border-color:var(--blue);}
+  .file .fh{background:var(--green); color:#fff !important; font-family:Consolas, monospace; font-weight:700; font-size:min(1.05vw,2.1vh); padding:.5vh .6vw;}
+  .file.bl .fh{background:var(--blue);}
+  .file .fb{background:#fff; font-family:Consolas, monospace; font-size:min(1vw,2vh); padding:.7vh .6vw; line-height:1.5;}
+  .file .fb .dim{color:var(--soft); font-family:'Segoe UI', system-ui, sans-serif;}
+  .foot{margin:.8vh 0 0; font-size:min(1vw,1.9vh); color:#7F93AD; opacity:.08; transition:opacity .45s;}
+  .bottom.on + .foot{opacity:1;}
+  @media (max-width:800px){
+    #scr1 .row{grid-template-columns:1fr;}
+    body{overflow:auto; height:auto;}
+    .row{grid-template-columns:1fr;} .arrow{transform:rotate(90deg); justify-self:center;}
+    .bottom{grid-template-columns:1fr;} h1{white-space:normal; font-size:26px;} .head{flex-direction:column;} .hint{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){ .step,.arrow,.bottom{transition:none; transform:none;} }
 </style>
 </head>
 <body>
-<div class="app">
-
-  <header>
-    <div>
-      <span class="kicker">Sesión 13 · gRPC · tu primer servicio</span>
-      <h1>Anatomía de una llamada gRPC</h1>
-      <p class="sub">De tu código → stub → bytes → HTTP/2 → skeleton → tu método → y de vuelta. Paso a paso.</p>
+  <div class="head"><h1 id="ttl"><span>SaludoResponse</span> es una caja para la respuesta</h1><div><div class="ctrl"><button type="button" class="sec" id="bPrev">◀</button><button type="button" id="bNext">Siguiente ▶</button></div><div class="hint">→ avanza · T = toda la pantalla</div></div></div>
+  <div class="screen" id="scr1">
+  <p class="sub">Antes de usar las cajas: <b>¿de dónde salen?</b> Las fabrica <code>bash compilar.sh</code> a partir del <code>.proto</code>.</p>
+  <div class="row">
+    <div class="step" data-s="1">
+      <div class="num">1</div>
+      <div class="emoji">📜</div>
+      <div class="what">El dibujo<br><code class="fn">saludo.proto</code></div>
+      <div class="code">message <span class="g">SaludoRequest</span>
+  { nombre, matricula }
+message <span class="g">SaludoResponse</span>
+  { mensaje }
+service <span class="bl">Saludador</span>
+  { SaludarUno }</div>
+      <div class="note">Solo <b>describe</b> las cajas y la función. Python todavía no lo puede usar.</div>
     </div>
-    <div class="controls">
-      <button class="btn ghost icon" id="btnPrev" title="Paso anterior">‹</button>
-      <button class="btn primary" id="btnPlay">▶ Reproducir</button>
-      <button class="btn ghost icon" id="btnNext" title="Paso siguiente">›</button>
-      <button class="btn ghost icon" id="btnReset" title="Reiniciar">↺</button>
+    <div class="arrow" data-s="2">➜</div>
+
+    <div class="step" data-s="2">
+      <div class="num">2</div>
+      <div class="emoji">🏭</div>
+      <div class="what">La fábrica<br><code class="fn">compilar.sh</code></div>
+      <div class="code"><span class="dim">$</span> bash compilar.sh
+<span class="dim"># adentro corre protoc</span>
+Listo: se generaron
+<span class="g">saludo_pb2.py</span>
+<span class="bl">saludo_pb2_grpc.py</span></div>
+      <div class="note"><b>protoc lee el dibujo y escribe el código Python por ti.</b> Si cambias el <code>.proto</code>, compilas otra vez.</div>
     </div>
-  </header>
+    <div class="arrow" data-s="3">➜</div>
 
-  <nav class="stepper" id="stepper"></nav>
-
-  <section class="stage">
-    <div class="snode cli" id="nodeCli">
-      <div class="disc">C</div>
-      <div class="nm">CLIENTE</div>
-      <div class="dt">tu código + <b>stub</b> (generado)</div>
-      <span class="layerchip" id="layerCli">—</span>
+    <div class="step" data-s="3">
+      <div class="num">3</div>
+      <div class="emoji">📦</div>
+      <div class="what">Salen dos archivos nuevos</div>
+      <div class="file g"><div class="fh">saludo_pb2.py · <i>las cajas</i></div><div class="fb">SaludoRequest<br>SaludoResponse</div></div>
+      <div class="file bl"><div class="fh">saludo_pb2_grpc.py · <i>los que atienden</i></div><div class="fb">SaludadorStub <span class="dim">→ el mesero</span><br>SaludadorServicer <span class="dim">→ base del cocinero</span><br>add_SaludadorServicer_to_server <span class="dim">→ contratarlo</span></div></div>
+      <div class="note">No los escribes tú y no se editan.</div>
     </div>
-    <div class="wirebox" id="wirebox">
-      <div class="wlabel">gRPC sobre HTTP/2 · localhost : 50051</div>
-      <div class="wire">
-        <div class="cable"></div>
-        <div class="pkt" id="pktReq">▸ HelloRequest · 5 B</div>
-        <div class="pkt" id="pktRes">◂ HelloReply · 12 B</div>
-      </div>
-      <div class="nettag" id="netTag"></div>
+    <div class="arrow" data-s="4">➜</div>
+
+    <div class="step" data-s="4">
+      <div class="num">4</div>
+      <div class="emoji">🧑‍💻</div>
+      <div class="what"><code class="fn">servidor.py</code> los importa</div>
+      <div class="code"><span class="g">import saludo_pb2</span>
+<span class="bl">import saludo_pb2_grpc</span>
+
+class SaludadorServicio(
+  <span class="bl">saludo_pb2_grpc.SaludadorServicer</span>):
+  ...
+  return <span class="g">saludo_pb2.SaludoResponse</span>(
+      mensaje=mensaje)</div>
+      <div class="note"><code>import</code> = traer lo que hizo la fábrica.<br><code>saludo_pb2.SaludoResponse</code> = "del archivo <b>saludo_pb2</b>, dame la caja <b>SaludoResponse</b>".</div>
     </div>
-    <div class="snode srv on" id="nodeSrv">
-      <div class="disc">S</div>
-      <div class="nm">SERVIDOR</div>
-      <div class="dt">tu código + <b>skeleton</b> (generado)</div>
-      <span class="layerchip" id="layerSrv">—</span>
+  </div>
+  <div class="bottom" data-s="5">
+    <div class="card ok">✅ Por eso el orden siempre es:<br><b>1.</b> <code>bash compilar.sh</code> &nbsp; <b>2.</b> <code>python servidor.py</code> &nbsp; <b>3.</b> <code>python cliente.py</code></div>
+    <div class="card bad">❌ Si no compilas, el <code>import</code> no encuentra nada:<br><code>ModuleNotFoundError: No module named 'saludo_pb2'</code></div>
+  </div>
+  <p class="foot">Si abren <code>saludo_pb2.py</code> no verán escrito <code>class SaludoResponse</code>: protoc lo guarda en forma compacta. Al importarlo, la caja sí existe.</p>
+</div>
+<div class="screen" id="scr2">
+  <p class="sub">Una caja con <b>un solo hueco</b>, llamado <b>mensaje</b>. El servidor la llena, la caja viaja y el cliente la abre.</p>
+
+  <div class="row">
+    <div class="step" data-s="6">
+      <div class="num">A</div>
+      <div class="emoji">📜</div>
+      <div class="what">El menú dibuja la caja</div>
+      <div class="box"><div class="lid">SaludoResponse</div><div class="slot"><span class="lbl">mensaje</span><span class="empty">(vacío)</span></div></div>
+      <div class="code">message <b>SaludoResponse</b> {
+  string <b>mensaje</b> = 1;
+}</div>
+      <div class="note">En <code>saludo.proto</code> solo se dice <b>cómo es</b> la caja. Todavía no hay nada adentro.</div>
     </div>
-  </section>
+    <div class="arrow" data-s="7">➜</div>
 
-  <main class="panels">
+    <div class="step" data-s="7">
+      <div class="num">B</div>
+      <div class="emoji">🧑‍🍳</div>
+      <div class="what">El servidor llena la caja</div>
+      <div class="box"><div class="lid">SaludoResponse</div><div class="slot"><span class="lbl">mensaje</span><span class="val">"Hola, Ana! … suman 14."</span></div></div>
+      <div class="code">return saludo_pb2.<b>SaludoResponse</b>(
+    <b>mensaje</b>=mensaje)</div>
+      <div class="note">Mete el texto en el hueco <b>mensaje</b> y entrega la caja.<br><code>saludo_pb2</code> = el archivo que fabricó <code>compilar.sh</code>.</div>
+    </div>
+    <div class="arrow" data-s="8">➜</div>
 
-    <section class="pane" id="paneCli">
-      <div class="pane-head">
-        <h2>Cliente.java</h2>
-        <span class="turnlab">▸ ejecutando</span>
-        <div class="legend">
-          <span><i class="lg-mine"></i>tú lo escribes</span>
-          <span><i class="lg-proto"></i>protoc lo genera</span>
-          <span><i class="lg-runtime"></i>biblioteca gRPC</span>
-        </div>
-      </div>
-      <div class="code" id="codeCli"></div>
-    </section>
+    <div class="step" data-s="8">
+      <div class="num">C</div>
+      <div class="emoji">🚚</div>
+      <div class="what">La caja viaja por la red</div>
+      <div class="bytes">0A 39 48 6F 6C 61 …</div>
+      <div class="note">Para viajar, la caja se convierte en <b>bytes</b>.<br><b>0A</b> = "hueco 1 (mensaje)"<br><b>39</b> = "trae 57 letras"<br><b>48 6F 6C 61</b> = "Hola"</div>
+      <div class="note">Esto lo hace gRPC solito.</div>
+    </div>
+    <div class="arrow" data-s="9">➜</div>
 
-    <aside class="narr">
-      <div class="narr-head">
-        <div class="stepmeta" id="stepNum">Paso 1 de 12</div>
-        <h3 id="stepTitle"></h3>
-        <div class="who" id="stepWho"></div>
-        <div class="fnbox"><span class="fx">fn()</span><span id="stepFn"></span></div>
-      </div>
-      <p class="narr-desc" id="stepDesc"></p>
-      <div class="bytes" id="bytesBox" style="display:none"></div>
-      <div class="vars">
-        <div class="vh">Memoria · cliente</div>
-        <div id="varsCli"></div>
-        <div class="vh">Memoria · servidor</div>
-        <div id="varsSrv"></div>
-      </div>
-      <div class="term">
-        <div class="term-h">Terminal · cliente</div>
-        <div class="term-out" id="termOut"></div>
-      </div>
-      <div class="quiz" id="quiz">
-        <h4>Comprueba lo que aprendiste</h4>
-        <div class="q">
-          <p>1 · ¿Quién convirtió el HelloRequest en bytes antes de enviarlo?</p>
-          <button class="qopt" data-ok="0">Tu código en el main() del cliente</button>
-          <button class="qopt" data-ok="1">El stub generado por protoc, al serializar (marshalling)</button>
-          <button class="qopt" data-ok="0">El sistema operativo, al usar la red</button>
-          <div class="qexp">Correcto: el marshalling lo hace el código que <b>protoc generó</b>. Por eso tú jamás ves bytes en tu programa.</div>
-        </div>
-        <div class="q">
-          <p>2 · ¿Qué método contiene TU lógica de negocio?</p>
-          <button class="qopt" data-ok="0">stub.sayHello(), en el cliente</button>
-          <button class="qopt" data-ok="1">GreeterImpl.sayHello(), en el servidor</button>
-          <button class="qopt" data-ok="0">awaitTermination(), en el servidor</button>
-          <div class="qexp">Tu lógica vive en el <b>override</b> de sayHello() dentro de GreeterImpl; el stub solo la invoca en remoto.</div>
-        </div>
-        <div class="q">
-          <p>3 · Mientras el servidor ejecuta sayHello(), el hilo del cliente…</p>
-          <button class="qopt" data-ok="0">sigue corriendo otras tareas</button>
-          <button class="qopt" data-ok="1">está bloqueado esperando la respuesta</button>
-          <button class="qopt" data-ok="0">ya imprimió el resultado</button>
-          <div class="qexp">Es un <b>BlockingStub</b>: el hilo queda congelado en stub.sayHello(request) hasta que llega la respuesta.</div>
-        </div>
-      </div>
-    </aside>
+    <div class="step" data-s="9">
+      <div class="num">D</div>
+      <div class="emoji">🙋</div>
+      <div class="what">El cliente abre la caja</div>
+      <div class="box"><div class="lid">respuesta</div><div class="slot"><span class="lbl">mensaje</span><span class="val">"Hola, Ana! … suman 14."</span></div></div>
+      <div class="code">respuesta = stub.SaludarUno(peticion)
+print(<b>respuesta.mensaje</b>)</div>
+      <div class="note"><code>respuesta</code> es la caja. <code>.mensaje</code> es <b>sacar lo que hay en el hueco</b>.</div>
+    </div>
+  </div>
 
-    <section class="pane" id="paneSrv">
-      <div class="pane-head">
-        <h2>Servidor.java</h2>
-        <span class="turnlab">▸ ejecutando</span>
-        <div class="legend">
-          <span><i class="lg-mine"></i>tú lo escribes</span>
-          <span><i class="lg-proto"></i>protoc lo genera</span>
-          <span><i class="lg-runtime"></i>biblioteca gRPC</span>
-        </div>
-      </div>
-      <div class="code" id="codeSrv"></div>
-    </section>
-
-  </main>
+  <div class="bottom" data-s="10">
+    <div class="card ok">✅ <b>De ida</b> viaja otra caja: <code>SaludoRequest</code>, con dos huecos (<code>nombre</code> y <code>matricula</code>).<br><b>De regreso</b> viaja <code>SaludoResponse</code>, con uno (<code>mensaje</code>).</div>
+    <div class="card bad">❌ Si el servidor regresa el texto <b>suelto</b>, sin caja:<br><code>return mensaje</code> → error <code>INTERNAL: Failed to serialize response!</code><br>gRPC solo sabe enviar cajas.</div>
+  </div>
 </div>
 
-<div id="tip"></div>
-
 <script>
-const $ = s => document.querySelector(s);
-
-/* ============ código con autoría por línea ============ */
-const CLI = [
- {t:'public class Cliente {', a:'', tip:'Clase del cliente: un programa Java normal y corriente.'},
- {t:'  public static void main(String[] args) {', a:'', tip:'El main arranca todo: canal, stub, request, llamada.'},
- {t:'    // (1) Canal: la conexión con el servidor', a:'runtime'},
- {t:'    ManagedChannel canal = ManagedChannelBuilder', a:'runtime', tip:'canal es la variable que guarda la conexión.'},
- {t:'        .forAddress("localhost", 50051)', a:'runtime', tip:'Dirección y puerto donde escucha el servidor.'},
- {t:'        .usePlaintext()', a:'runtime', tip:'Sin TLS (cifrado): válido solo para pruebas locales.'},
- {t:'        .build();', a:'runtime', tip:'Crea el canal: TCP + HTTP/2.'},
- {t:''},
- {t:'    // (2) Stub: lo que protoc generó del .proto', a:'proto'},
- {t:'    GreeterGrpc.GreeterBlockingStub stub =', a:'proto', tip:'El tipo lo generó protoc: no lo escribes tú.'},
- {t:'        GreeterGrpc.newBlockingStub(canal);', a:'proto', tip:'Le das el canal: así sabe a dónde enviar todo.'},
- {t:''},
- {t:'    // (3) Armo el mensaje de petición (protobuf)', a:'mine'},
- {t:'    HelloRequest request = HelloRequest.newBuilder()', a:'mine', tip:'HelloRequest salió del message del .proto.'},
- {t:'        .setName("Ana")', a:'mine', tip:'El campo name del .proto ahora vale "Ana".'},
- {t:'        .build();', a:'mine', tip:'Construye el objeto (inmutable).'},
- {t:''},
- {t:'    // (4) Llamada remota: ¡se usa como método local!', a:'mine'},
- {t:'    HelloReply reply = stub.sayHello(request);', a:'mine', tip:'Parece local, pero viaja al servidor. El hilo espera aquí la respuesta.'},
- {t:''},
- {t:'    // (5) Uso la respuesta como objeto Java normal', a:'mine'},
- {t:'    System.out.println(reply.getGreeting());', a:'mine', tip:'reply.getGreeting() lee el campo greeting del .proto.'},
- {t:'  }', a:''},
- {t:'}', a:''}
-];
-
-const SRV = [
- {t:'public class Servidor {', a:'', tip:'Clase del servidor: solo hace el "cableado".'},
- {t:'  public static void main(String[] args) {', a:''},
- {t:'    // (1) Construir el servidor y registrar tu servicio', a:'runtime'},
- {t:'    Server servidor = ServerBuilder', a:'runtime', tip:'servidor guarda la referencia al servidor gRPC.'},
- {t:'        .forPort(50051)', a:'runtime', tip:'Mismo puerto que eligió el cliente: 50051.'},
- {t:'        .addService(new GreeterImpl())', a:'mine', tip:'AQUÍ conectas tu clase: sin esto gRPC no sabría a quién llamar.'},
- {t:'        .build();', a:'runtime'},
- {t:'    servidor.start();   // abre el puerto y escucha', a:'runtime', tip:'Empieza a recibir peticiones entrantes.'},
- {t:'    servidor.awaitTermination();', a:'runtime', tip:'Mantiene el proceso vivo mientras llegan peticiones.'},
- {t:'  }', a:''},
- {t:'}', a:''},
- {t:''},
- {t:'// (2) Tu servicio: hereda del skeleton generado por protoc', a:'mine'},
- {t:'static class GreeterImpl extends GreeterGrpc.GreeterImplBase {', a:'mine', tip:'El skeleton (GreeterImplBase) ya trae el cableado de red.'},
- {t:''},
- {t:'  // gRPC invoca este método cuando llega una petición', a:'proto'},
- {t:'  @Override', a:'proto', tip:'Redefines el método que declaró el .proto (rpc SayHello).'},
- {t:'  public void sayHello(HelloRequest request,', a:'proto', tip:'Llega ya deserializado: un HelloRequest de Java.'},
- {t:'      StreamObserver<HelloReply> responseObserver) {', a:'proto', tip:'Tu manguera para responder: onNext envía, onCompleted cierra.'},
- {t:''},
- {t:'    // (3) TU LÓGICA: el trabajo de verdad', a:'mine'},
- {t:'    String nombre = request.getName();   // "Ana"', a:'mine', tip:'Lees el campo name del mensaje.'},
- {t:'    String saludo = "Hola, " + nombre + "!";', a:'mine', tip:'Calculas el resultado como en cualquier programa.'},
- {t:''},
- {t:'    // (4) Armo la respuesta (igual que un request)', a:'mine'},
- {t:'    HelloReply reply = HelloReply.newBuilder()', a:'mine', tip:'HelloReply también lo generó protoc.'},
- {t:'        .setGreeting(saludo)', a:'mine', tip:'Llenas el campo greeting.'},
- {t:'        .build();', a:'mine'},
- {t:''},
- {t:'    // (5) Entrego la respuesta y cierro el stream', a:'mine'},
- {t:'    responseObserver.onNext(reply);', a:'mine', tip:'Envía la respuesta: el runtime la serializa y la manda.'},
- {t:'    responseObserver.onCompleted();', a:'mine', tip:'Avisa que la respuesta unary terminó.'},
- {t:'  }', a:'mine'},
- {t:'}', a:'mine'}
-];
-
-/* ============ resaltador de sintaxis mínimo ============ */
-function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function hl(t){
-  let s = esc(t);
-  const store = [];
-  const keep = html => { store.push(html); return '\x00' + (store.length-1) + '\x01'; };
-  let cmt = '';
-  const ci = s.indexOf('//');
-  if(ci >= 0){ cmt = s.slice(ci); s = s.slice(0, ci); }
-  s = s.replace(/"([^"]*)"/g, m => keep("<span class='str'>"+m+"</span>"));
-  s = s.replace(/\b\d+\b/g, m => keep("<span class='num'>"+m+"</span>"));
-  s = s.replace(/\b(public|class|static|void|String|new|extends|throws|Override|return)\b/g, "<span class='kw'>$1</span>");
-  s = s.replace(/\b(GreeterGrpc|GreeterImpl|GreeterImplBase|GreeterBlockingStub|HelloRequest|HelloReply|ManagedChannel|ManagedChannelBuilder|ServerBuilder|Server|StreamObserver|Cliente|Servidor)\b/g, "<span class='typ'>$1</span>");
-  if(cmt) s += keep("<span class='cmt'>"+cmt+"</span>");
-  s = s.replace(/\x00(\d+)\x01/g, (m,i) => store[i]);
-  return s;
-}
-function renderCode(list, el){
-  el.innerHTML = '';
-  list.forEach((L,i)=>{
-    const d = document.createElement('div');
-    d.className = 'ln ' + (L.a||'');
-    d.dataset.i = i;
-    if(L.tip) d.dataset.tip = L.tip;
-    d.innerHTML = '<span class="n">'+(i+1)+'</span><code>'+hl(L.t)+'</code>';
-    el.appendChild(d);
-  });
-}
-renderCode(CLI, $('#codeCli'));
-renderCode(SRV, $('#codeSrv'));
-
-/* ============ variables base ============ */
-const VS0 = [{n:'servidor', v:'gRPC · puerto 50051'},{n:'servicios', v:'Greeter → SayHello'}];
-const VC  = [{n:'canal', v:'localhost:50051 · HTTP/2'},{n:'stub', v:'GreeterBlockingStub'}];
-const VRQ = [{n:'request', v:'HelloRequest{ name: "Ana" }'}];
-const VW  = [{n:'hilo main', v:'⏸ bloqueado en sayHello()', k:'wait'}];
-const VP  = [{n:'payload', v:'0A 03 41 6E 61', k:'bytesv'}];
-const VSR = [{n:'request', v:'HelloRequest{ name: "Ana" }'}];
-const VSL = [{n:'nombre', v:'"Ana"'},{n:'saludo', v:'"Hola, Ana!"'},{n:'reply', v:'HelloReply{ greeting: "Hola, Ana!" }'}];
-const VRC = [{n:'reply', v:'HelloReply{ greeting: "Hola, Ana!" }'}];
-
-/* ============ los 12 pasos ============ */
-const STEPS = [
-{ title:'El servidor se pone en línea', side:'srv',
-  who:[{t:'biblioteca gRPC',c:'runtime'}],
-  fn:'Servidor.main() → servidor.start()',
-  desc:'Todo empieza <b>antes</b> de que exista el cliente. Con <b>ServerBuilder</b> construyes el servidor en el <b>puerto 50051</b> y registras tu clase <b>GreeterImpl</b> como servicio disponible. <b>start()</b> abre el puerto y <b>awaitTermination()</b> deja el proceso esperando peticiones para siempre.',
-  lc:[], ls:[2,3,4,5,6,7,8],
-  layerCli:null, layerSrv:['Runtime gRPC · escuchando :50051','runtime'],
-  vc:[], vs:VS0, req:null, res:null, net:null },
-
-{ title:'El cliente abre un canal', side:'cli',
-  who:[{t:'biblioteca gRPC',c:'runtime'}],
-  fn:'ManagedChannelBuilder.forAddress(…).build()',
-  desc:'El cliente crea un <b>ManagedChannel</b>: la conexión hacia <code>localhost:50051</code> (TCP + HTTP/2). Con <b>usePlaintext()</b> le dices "sin TLS": vale solo para pruebas locales. Aún no se envía nada: es la línea telefónica abierta y muda.',
-  lc:[2,3,4,5,6], ls:[],
-  layerCli:['Runtime gRPC · canal HTTP/2','runtime'], layerSrv:null,
-  vc:[VC[0]], vs:VS0, req:null, res:null, net:null },
-
-{ title:'El stub: tu control remoto del servidor', side:'cli',
-  who:[{t:'protoc generó el stub',c:'proto'}],
-  fn:'GreeterGrpc.newBlockingStub(canal)',
-  desc:'De tu archivo <code>.proto</code>, <b>protoc</b> generó la clase <b>GreeterGrpc</b>, que trae un <b>stub</b> para el cliente. El stub conoce cada método del servicio y sabe cómo invocarlo en remoto: <b>él esconde toda la red</b>. "Blocking" significa que su llamada espera la respuesta.',
-  lc:[8,9,10], ls:[],
-  layerCli:['Stub · generado por protoc','proto'], layerSrv:null,
-  vc:VC, vs:VS0, req:null, res:null, net:null },
-
-{ title:'Armas el mensaje de petición', side:'cli',
-  who:[{t:'tú escribes',c:'mine'},{t:'protoc generó HelloRequest',c:'proto'}],
-  fn:'HelloRequest.newBuilder().setName("Ana").build()',
-  desc:'<b>HelloRequest</b> también salió del <code>.proto</code> (el <code>message</code> con el campo <code>name</code>). Su <b>builder</b> llena los campos y produce el objeto <b>request</b> en memoria, con <code>name = "Ana"</code>. Sigue sin salir nada del cliente.',
-  lc:[12,13,14,15], ls:[],
-  layerCli:['Tu código + builder protobuf','mine'], layerSrv:null,
-  vc:[...VC,...VRQ], vs:VS0, req:null, res:null, net:null },
-
-{ title:'La llamada RPC: parece local, es remota', side:'cli',
-  who:[{t:'tú llamas',c:'mine'},{t:'el stub toma el control',c:'proto'}],
-  fn:'stub.sayHello(request) ← el hilo se bloquea aquí',
-  desc:'Esta línea parece una llamada a método normal… pero <b>no hay código de sayHello en el cliente</b>. El hilo <b>main queda bloqueado</b> mientras el stub convierte, envía, espera y recibe. Cuando despierte, <b>reply</b> ya tendrá la respuesta.',
-  lc:[17,18], ls:[],
-  layerCli:['Stub · RPC bloqueante','proto'], layerSrv:null,
-  vc:[...VC,...VRQ,...VW], vs:VS0, req:null, res:null, net:null },
-
-{ title:'Marshalling: el mensaje se vuelve bytes', side:'cli',
-  who:[{t:'marshalling (protobuf)',c:'proto'}],
-  fn:'Marshaller → request.toByteArray()',
-  desc:'El stub <b>serializa</b> el objeto con las reglas de <b>protobuf</b>: a cada campo le pone etiqueta y longitud. Todo <code>name = "Ana"</code> cabe en <b>5 bytes</b>. Esos bytes — y solo esos — son lo que viajará por la red.',
-  lc:[18], ls:[],
-  layerCli:['Marshaller · serializa','proto'], layerSrv:null,
-  bytes:{ title:'HelloRequest en el cable',
-    segs:[{h:['0A'],c:'campo 1 (name)'},{h:['03'],c:'longitud: 3'},{h:['41','6E','61'],c:'"Ana" en ASCII'}], tot:'5 bytes' },
-  vc:[...VC,...VRQ,...VW,...VP], vs:VS0, req:'forming', res:null, net:null },
-
-{ title:'Por el cable: HTTP/2', side:'net',
-  who:[{t:'gRPC sobre HTTP/2',c:'runtime'}],
-  fn:'HTTP/2 → frames HEADERS + DATA',
-  desc:'gRPC envía los bytes dentro de un mensaje HTTP/2. En los <b>headers</b> viaja la "ruta" del método: <code>/greeter.Greeter/SayHello</code> — así sabrá el servidor a quién entregarlo. Los bytes van en el frame <b>DATA</b>. HTTP/2 además permite <b>muchas llamadas a la vez</b> por el mismo canal (multiplexación).',
-  lc:[], ls:[],
-  layerCli:['HTTP/2 · enviando','runtime'], layerSrv:['HTTP/2 · recibiendo','runtime'],
-  vc:[...VC,...VRQ,...VW,...VP], vs:VS0, req:'travelR', res:null,
-  net:'HEADERS :path = /greeter.Greeter/SayHello · DATA 5 bytes' },
-
-{ title:'El skeleton recibe y deserializa', side:'srv',
-  who:[{t:'skeleton + unmarshalling',c:'proto'}],
-  fn:'GreeterImplBase.sayHello() → tu GreeterImpl.sayHello()',
-  desc:'El runtime del servidor lee la ruta, busca el servicio registrado y su método. El <b>skeleton</b> (la mitad de protoc para el servidor) hace <b>unmarshalling</b>: los bytes vuelven a ser un <code>HelloRequest</code>… y llama a <b>tu método</b> con ese request y un <code>responseObserver</code> para contestar.',
-  lc:[], ls:[12,13,15,16,17,18],
-  layerCli:null, layerSrv:['Skeleton · unmarshalling','proto'],
-  vc:[...VC,...VRQ,...VW], vs:[...VS0,...VSR], req:'arrivedR', res:null, net:null },
-
-{ title:'TU código se ejecuta en el servidor', side:'srv', star:true,
-  who:[{t:'TU CÓDIGO',c:'mine'}],
-  fn:'GreeterImpl.sayHello(request, responseObserver)',
-  desc:'El momento clave: <b>aquí estás tú</b>. gRPC ya resolvió red, bytes y rutas; tu método recibe el request como <b>objeto Java normal</b>. Lees <code>getName()</code>, calculas el saludo y armas el <b>HelloReply</b> con su builder — igual que el cliente armó su request. Ni tu código ni el del cliente saben que hubo red en medio.',
-  lc:[], ls:[20,21,22,24,25,26,27],
-  layerCli:null, layerSrv:['TU CÓDIGO · sayHello()','mine'],
-  vc:[...VC,...VRQ,...VW], vs:[...VS0,...VSR,...VSL], req:'consumed', res:null, net:null },
-
-{ title:'La respuesta regresa', side:'srv',
-  who:[{t:'tú respondes',c:'mine'},{t:'runtime serializa y envía',c:'runtime'}],
-  fn:'responseObserver.onNext(reply) · .onCompleted()',
-  desc:'Con <b>onNext(reply)</b> entregas la respuesta: el runtime la <b>serializa</b> (marshalling de vuelta) y la manda por HTTP/2. <b>onCompleted()</b> declara el fin — en una llamada unary hay un solo onNext. Del otro lado, el cliente sigue bloqueado esperando…',
-  lc:[], ls:[29,30,31],
-  layerCli:null, layerSrv:['Marshaller + HTTP/2 · responde','runtime'],
-  bytes:{ title:'HelloReply en el cable',
-    segs:[{h:['0A'],c:'campo 1 (greeting)'},{h:['0A'],c:'longitud: 10'},{h:['48','6F','6C','61','2C','20','41','6E','61','21'],c:'"Hola, Ana!" en ASCII'}], tot:'12 bytes' },
-  vc:[...VC,...VRQ,...VW], vs:[...VS0,...VSR,...VSL], req:'consumed', res:'travelL',
-  net:'HEADERS :status = 200 OK · DATA 12 bytes' },
-
-{ title:'El cliente despierta', side:'cli',
-  who:[{t:'stub deserializa',c:'proto'}],
-  fn:'sayHello() retorna → reply',
-  desc:'El stub recibe los bytes, los deserializa a <b>HelloReply</b> (unmarshalling) y la llamada bloqueada del paso 5 <b>por fin retorna</b>. La magia completa: <code>stub.sayHello()</code> se comportó como un método local… que ejecutó tu código <b>en otra máquina</b>.',
-  lc:[17,18], ls:[],
-  layerCli:['Marshaller · deserializa','proto'], layerSrv:null,
-  vc:[...VC,...VRQ,...VRC], vs:[...VS0,...VSR,...VSL], req:'consumed', res:'arrivedL', net:null },
-
-{ title:'El resultado final', side:'cli',
-  who:[{t:'tú usas el resultado',c:'mine'}],
-  fn:'System.out.println( reply.getGreeting() )',
-  desc:'Tu programa cliente sigue su curso: lee el campo <code>greeting</code> y lo imprime. <b>Ni println ni tú supisteis jamás qué pasó por la red.</b> Eso es RPC: llamar código remoto <b>como si fuera local</b>.',
-  lc:[20,21], ls:[],
-  layerCli:['Tu código · println()','mine'], layerSrv:null,
-  vc:[...VC,...VRQ,...VRC,{n:'salida',v:'"Hola, Ana!"'}], vs:[...VS0,...VSR,...VSL], req:'consumed', res:'consumed', net:null }
-];
-
-const LABELS = ['Servidor','Canal','Stub','Request','RPC','Marshal','Red','Skeleton','¡Tu código!','Reply','Retorno','Resultado'];
-
-/* ============ stepper ============ */
-const stepper = $('#stepper');
-STEPS.forEach((s,i)=>{
-  const b = document.createElement('button');
-  b.className = 'stp';
-  b.innerHTML = '<span class="dot">'+(i+1)+'</span><span class="lb">'+LABELS[i]+'</span>';
-  b.addEventListener('click', ()=>{ stop(); applyStep(i); });
-  stepper.appendChild(b);
-});
-
-/* ============ helpers de render ============ */
-const pktStates = ['forming','travelR','travelL','arrivedR','arrivedL','consumed'];
-function setPacket(el, st){
-  pktStates.forEach(c => el.classList.remove(c));
-  if(st) el.classList.add(st);
-}
-function setLayer(el, L){
-  if(!L){ el.textContent = '—'; el.className = 'layerchip'; return; }
-  el.textContent = L[0]; el.className = 'layerchip ' + L[1];
-}
-function setActive(sel, idxs){
-  document.querySelectorAll(sel + ' .ln').forEach(l => l.classList.remove('active'));
-  idxs.forEach(i=>{
-    const l = document.querySelector(sel + ' .ln[data-i="'+i+'"]');
-    if(l){ l.classList.add('active'); l.scrollIntoView({block:'nearest'}); }
-  });
-}
-function renderVars(el, list){
-  const prev = el._prev || new Map();
-  el.innerHTML = list.length
-    ? list.map(v=>'<div class="var '+(v.k||'')+' '+((prev.get(v.n)!==v.v)?'pop':'')+'"><span class="vn">'+v.n+'</span><span class="vv">'+v.v+'</span></div>').join('')
-    : '<div class="vempty">(sin variables todavía)</div>';
-  el._prev = new Map(list.map(v=>[v.n, v.v]));
-}
-function renderBytes(b){
-  $('#bytesBox').innerHTML =
-    '<h5>'+b.title+'</h5>' +
-    '<div class="brow">' + b.segs.map(s=>
-      '<div class="bseg"><div class="hex">'+s.h.map(x=>'<b>'+x+'</b>').join('')+'</div><div class="cap">'+s.c+'</div></div>'
-    ).join('') + '</div>' +
-    '<div class="btot">→ '+b.tot+' viajan por la red</div>';
-}
-function renderTerm(i){
-  const last = i === STEPS.length-1;
-  if(i === 0){
-    $('#termOut').innerHTML = '<span class="dim">— el servidor ya corre en otra terminal —</span>';
-  } else {
-    $('#termOut').innerHTML = '<span class="p">usuario@lab:~$</span> java Cliente\n' +
-      (last ? '<span class="out">Hola, Ana!</span>' : '<span class="caret"></span>');
-  }
-}
-
-/* ============ aplicación de un paso ============ */
-let cur = -1;
-function applyStep(i){
-  cur = i;
-  const S = STEPS[i];
-  document.querySelectorAll('.stp').forEach((el,j)=>{
-    el.classList.toggle('cur', j===i);
-    el.classList.toggle('done', j<i);
-  });
-  setActive('#codeCli', S.lc || []);
-  setActive('#codeSrv', S.ls || []);
-  const paneCli = $('#paneCli'), paneSrv = $('#paneSrv');
-  paneCli.classList.toggle('turn', S.side==='cli');
-  paneSrv.classList.toggle('turn', S.side==='srv');
-  paneSrv.classList.toggle('star', !!S.star);
-  $('#nodeCli').classList.toggle('active', S.side==='cli');
-  $('#nodeSrv').classList.toggle('active', S.side==='srv');
-  $('#wirebox').classList.toggle('connected', i>=1);
-  $('#wirebox').classList.toggle('hot', S.side==='net');
-  setLayer($('#layerCli'), S.layerCli);
-  setLayer($('#layerSrv'), S.layerSrv);
-  setPacket($('#pktReq'), S.req);
-  setPacket($('#pktRes'), S.res);
-  const netTag = $('#netTag');
-  if(S.net){ netTag.textContent = S.net; netTag.classList.add('show'); }
-  else netTag.classList.remove('show');
-  $('#stepNum').textContent = 'Paso ' + (i+1) + ' de ' + STEPS.length;
-  $('#stepTitle').textContent = S.title;
-  $('#stepWho').innerHTML = S.who.map(w=>'<span class="wchip '+w.c+'">'+w.t+'</span>').join('');
-  $('#stepFn').textContent = S.fn;
-  $('#stepDesc').innerHTML = S.desc;
-  if(S.bytes){ $('#bytesBox').style.display = 'block'; renderBytes(S.bytes); }
-  else $('#bytesBox').style.display = 'none';
-  renderVars($('#varsCli'), S.vc || []);
-  renderVars($('#varsSrv'), S.vs || []);
-  renderTerm(i);
-  $('#quiz').classList.toggle('show', i === STEPS.length-1);
-  $('#btnPrev').disabled = i===0;
-  $('#btnNext').disabled = i===STEPS.length-1;
-}
-
-/* ============ controles ============ */
-let timer = null;
-function stop(){ if(timer){ clearInterval(timer); timer = null; } $('#btnPlay').innerHTML = '▶ Reproducir'; }
-function play(){
-  if(timer){ stop(); return; }
-  if(cur >= STEPS.length-1) applyStep(0);
-  $('#btnPlay').innerHTML = '⏸ Pausar';
-  timer = setInterval(()=>{
-    if(cur >= STEPS.length-1){ stop(); return; }
-    applyStep(cur+1);
-  }, 3800);
-}
- $('#btnPlay').addEventListener('click', play);
- $('#btnNext').addEventListener('click', ()=>{ stop(); if(cur<STEPS.length-1) applyStep(cur+1); });
- $('#btnPrev').addEventListener('click', ()=>{ stop(); if(cur>0) applyStep(cur-1); });
- $('#btnReset').addEventListener('click', ()=>{ stop(); applyStep(0); });
-document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowRight'){ stop(); if(cur<STEPS.length-1) applyStep(cur+1); }
-  if(e.key==='ArrowLeft'){ stop(); if(cur>0) applyStep(cur-1); }
-  if(e.key===' '){ e.preventDefault(); play(); }
-});
-
-/* ============ quiz ============ */
-document.querySelectorAll('.q').forEach(q=>{
-  const opts = q.querySelectorAll('.qopt');
-  opts.forEach(o=>{
-    o.addEventListener('click', ()=>{
-      if(q.classList.contains('done')) return;
-      q.classList.add('done');
-      const ok = o.dataset.ok === '1';
-      o.classList.add(ok ? 'ok' : 'bad');
-      if(!ok) opts.forEach(x=>{ if(x.dataset.ok==='1') x.classList.add('ok'); });
+(function(){
+  var shown = 1, MAX = 10, SPLIT = 5;
+  var TITLES = ['De dónde salen <span>las cajas</span> y <span>el mesero</span>', '<span>SaludoResponse</span> es una caja para la respuesta'];
+  function paint(){
+    var scr = shown <= SPLIT ? 1 : 2;
+    document.getElementById("scr1").classList.toggle("cur", scr === 1);
+    document.getElementById("scr2").classList.toggle("cur", scr === 2);
+    document.getElementById("ttl").innerHTML = TITLES[scr - 1];
+    document.querySelectorAll("[data-s]").forEach(function(el){
+      el.classList.toggle("on", Number(el.getAttribute("data-s")) <= shown);
     });
+    document.getElementById("bNext").disabled = shown >= MAX;
+    document.getElementById("bPrev").disabled = shown <= 1;
+  }
+  function next(){ if(shown < MAX){ shown++; paint(); } }
+  function prev(){ if(shown > 1){ shown--; paint(); } }
+  document.getElementById("bNext").addEventListener("click", next);
+  document.getElementById("bPrev").addEventListener("click", prev);
+  document.addEventListener("keydown", function(e){
+    if(e.key === "ArrowRight" || e.key === "PageDown" || e.key === " "){ e.preventDefault(); next(); }
+    else if(e.key === "ArrowLeft" || e.key === "PageUp"){ e.preventDefault(); prev(); }
+    else if(e.key.toLowerCase() === "t"){ shown = shown <= SPLIT ? SPLIT : MAX; paint(); }
   });
-});
-
-/* ============ tooltip por línea ============ */
-const tip = $('#tip');
-document.addEventListener('mouseover', e=>{
-  const ln = e.target.closest('.ln[data-tip]');
-  if(!ln){ tip.classList.remove('show'); return; }
-  const rect = ln.getBoundingClientRect();
-  tip.innerHTML = '<b>L' + ln.dataset.i*1 + '</b> · ' + ln.dataset.tip;
-  tip.classList.add('show');
-  const w = tip.offsetWidth;
-  tip.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 12)) + 'px';
-  tip.style.top = (rect.bottom + 8) + 'px';
-});
-
-/* ============ inicio ============ */
-applyStep(0);
+  paint();
+})();
 </script>
 </body>
 </html>
