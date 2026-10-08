@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sesión 14 · gRPC streaming</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F9FC; --panel:#FFFFFF; --ink:#10202F; --ink-soft:#45586B;
+    --navy:#0B2545; --blue:#2E5CA6; --teal:#17A398; --teal-text:#0C6259;
+    --amber:#E8A33D; --amber-tint:#FCEFD9;
+    --success:#1E8E5A; --success-text:#146C43; --success-tint:#E4F4EC;
+    --danger:#C0392B; --danger-tint:#FBEAE8; --line:#D7DEE8; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif; line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:840px; margin:0 auto; padding:0 20px 64px;}
+  h1,h2,h3{font-family:'Space Grotesk', system-ui, sans-serif; margin:0; letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+
+  .topbar{position:sticky; top:0; z-index:20; background:var(--navy); color:#fff; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .brand img{height:34px; width:auto; display:block;}
+  .progress-dots{display:flex; gap:6px;}
+  .progress-dots span{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.25); display:block; transition:background .25s ease;}
+  .progress-dots span.done{background:var(--teal);}
+  @media (prefers-reduced-motion: reduce){ .progress-dots span{transition:none;} }
+
+  .hero{padding:44px 0 28px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--blue); letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px; display:block;}
+  .hero h1{font-size:clamp(28px,4.5vw,40px); font-weight:700; color:var(--navy);}
+  .hero p{color:var(--ink-soft); font-size:16px; max-width:56ch; margin-top:12px;}
+
+  section.block{margin-top:36px;}
+  .block-head{display:flex; align-items:baseline; gap:10px; margin-bottom:14px;}
+  .block-num{font-family:'IBM Plex Mono', monospace; color:var(--blue); font-weight:500; font-size:14px;}
+  .block-head h2{font-size:21px; color:var(--navy);}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
+
+  /* layer cards (reused from lecture slides) */
+  .layer-stack{display:flex; flex-direction:column; gap:10px;}
+  .layer-card{display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:#fff; text-align:left; width:100%;}
+  .layer-num{width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Space Grotesk'; font-weight:700; font-size:15px;}
+  .layer-card h4{font-size:15px; color:var(--navy); margin-bottom:2px;}
+  .layer-card p{margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.4;}
+  .layer-ex{font-family:'IBM Plex Mono'; font-size:11px; color:var(--teal-text); margin-top:3px; display:block;}
+
+  /* ordering exercise */
+  .order-pool{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;}
+  .order-chip{
+    border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:12px 18px;
+    font-size:14px; font-weight:600; color:var(--navy);
+  }
+  .order-chip:disabled{opacity:.35; cursor:default;}
+  .order-chip.wrong{border-color:var(--danger); background:var(--danger-tint); color:var(--danger);}
+  .order-sequence{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; min-height:56px; padding:14px; border:1.5px dashed var(--line); border-radius:12px;}
+  .seq-slot{
+    display:flex; align-items:center; gap:8px; background:var(--success-tint); border:1px solid var(--success);
+    border-radius:10px; padding:10px 14px; font-size:13.5px; font-weight:600; color:var(--success-text);
+  }
+  .seq-slot .n{font-family:'IBM Plex Mono'; font-size:11px; background:var(--success); color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;}
+  .order-feedback{margin-top:14px; font-size:13.5px; padding:10px 12px; border-radius:8px; display:none;}
+  .order-feedback.show{display:block;}
+  .order-feedback.ok{background:var(--success-tint); color:var(--success-text);}
+  .order-hint{margin-top:14px; font-size:13px; color:var(--ink-soft); display:none;}
+  .order-hint.show{display:block;}
+  .encap-reveal{display:none; margin-top:20px; text-align:center;}
+  .encap-reveal.show{display:block; animation:revealPop .5s ease both;}
+  @keyframes revealPop{ from{opacity:0; transform:scale(.92) translateY(6px);} to{opacity:1; transform:scale(1) translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .encap-reveal.show{animation:none;} }
+
+  /* quiz */
+  .quiz-q{padding:16px 0; border-top:1px solid var(--line);}
+  .quiz-q:first-child{border-top:none; padding-top:0;}
+  .quiz-q p.qtext{font-weight:600; margin-bottom:10px;}
+  .quiz-opts{display:flex; flex-direction:column; gap:8px;}
+  .opt{text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:10px 14px; font-size:14px; color:var(--ink);}
+  .opt.correct{border-color:var(--success); background:var(--success-tint);}
+  .opt.incorrect{border-color:var(--danger); background:var(--danger-tint);}
+  .opt:disabled{cursor:default;}
+  .feedback{font-size:13px; margin-top:8px; padding:8px 10px; border-radius:8px;}
+  .feedback.ok{background:var(--success-tint); color:var(--success-text);}
+  .feedback.bad{background:var(--danger-tint); color:var(--danger);}
+  .quiz-score{margin-top:16px; padding:12px 14px; border-radius:10px; background:var(--bg); font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--navy); display:none;}
+  .quiz-score.show{display:block;}
+
+  /* classification exercise */
+  .clas-item{border-top:1px solid var(--line); padding:14px 0;}
+  .clas-item:first-child{border-top:none; padding-top:0;}
+  .clas-item .name{font-weight:600; margin-bottom:8px; font-family:'IBM Plex Mono', monospace; font-size:13.5px; color:var(--navy);}
+  .clas-opts{display:flex; gap:8px; flex-wrap:wrap;}
+  .clas-btn{border:1.5px solid var(--line); background:#fff; padding:7px 14px; border-radius:8px; font-size:13px; color:var(--ink-soft);}
+  .clas-btn.picked{border-color:var(--blue); color:var(--blue); font-weight:600;}
+  .clas-explain{display:none; font-size:13px; margin-top:8px; padding:8px 10px; border-radius:8px; background:var(--bg); color:var(--ink-soft);}
+  .clas-explain.show{display:block;}
+  .clas-explain.ok{background:var(--success-tint); color:var(--success-text);}
+  .clas-explain.bad{background:var(--danger-tint); color:var(--danger);}
+
+  .primary-btn{background:var(--navy); color:#fff; border:none; border-radius:10px; padding:11px 20px; font-size:14px; font-weight:600; margin-top:16px;}
+  .primary-btn:disabled{background:#B9C3CE; cursor:not-allowed;}
+
+  .conf-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .conf-btn{border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:12px 10px; flex:1; min-width:90px; text-align:center; font-size:13px; color:var(--ink-soft);}
+  .conf-btn.picked{border-color:var(--teal); background:#EAFBF7; color:var(--teal-text); font-weight:600;}
+
+  textarea{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; min-height:90px; color:var(--ink);}
+  input[type=text]{border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:inherit; font-size:14px; width:100%; max-width:280px; color:var(--ink);}
+  label{font-size:13px; font-weight:600; color:var(--navy); display:block; margin-bottom:6px;}
+  .evidence-panel{border:1.5px dashed var(--teal); background:#F1FBF9;}
+
+  /* static code reference */
+  .code-ref{background:var(--navy); border-radius:12px; padding:16px 18px; margin:10px 0;}
+  .code-ref pre{margin:0; color:#E8EEF7; font-family:'IBM Plex Mono', monospace; font-size:13px; line-height:1.75; white-space:pre-wrap;}
+  .code-ref .kw{color:#7FCBB3;}
+  .code-two{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .code-two h4{font-size:13px; color:var(--navy); margin-bottom:6px;}
+
+  /* bug hunt */
+  .bughunt{margin-top:16px;}
+  .bughunt-code{background:var(--navy); border-radius:12px; padding:8px 10px; margin-bottom:10px;}
+  .code-line{
+    display:block; width:100%; text-align:left; background:none; border:none; border-radius:6px;
+    color:#E8EEF7; font-family:'IBM Plex Mono', monospace; font-size:13px; padding:6px 10px; line-height:1.6;
+  }
+  .code-line:hover{background:rgba(255,255,255,.08);}
+  .code-line.correct{background:rgba(30,142,90,.35); box-shadow:inset 0 0 0 1.5px var(--success);}
+  .code-line.wrong{background:rgba(192,57,43,.35); box-shadow:inset 0 0 0 1.5px var(--danger);}
+  .bughunt-feedback{font-size:13.5px; padding:10px 12px; border-radius:8px; display:none; margin-top:8px;}
+  .bughunt-feedback.show{display:block;}
+  .bughunt-feedback.ok{background:var(--success-tint); color:var(--success-text);}
+  .bughunt-feedback.bad{background:var(--danger-tint); color:var(--danger);}
+  .bughunt-title{font-size:14px; font-weight:600; color:var(--navy); margin-bottom:6px;}
+
+  /* matching exercise */
+  .match-row{display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
+  .match-code{font-family:'IBM Plex Mono', monospace; font-size:13px; background:var(--bg); border-radius:6px; padding:6px 10px; min-width:180px;}
+  .match-opts{display:flex; gap:6px; flex-wrap:wrap;}
+  .match-btn{border:1.5px solid var(--line); background:#fff; padding:6px 12px; border-radius:8px; font-size:12.5px; color:var(--ink-soft);}
+  .match-btn.picked{border-color:var(--blue); color:var(--blue); font-weight:600;}
+  .match-explain{width:100%; font-size:12.5px; padding:6px 10px; border-radius:6px; display:none; margin-top:2px; margin-bottom:6px;}
+  .match-explain.show{display:block;}
+  .match-explain.ok{background:var(--success-tint); color:var(--success-text);}
+  .match-explain.bad{background:var(--danger-tint); color:var(--danger);}
+
+  /* multi-client simulator */
+  .sim-panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px;}
+  .sim-server{width:56px; height:56px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:13px; margin:0 auto 16px;}
+  .sim-clients{min-height:20px;}
+  .sim-row{display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:8px 10px; border-radius:8px; background:var(--bg); animation:simIn .35s ease both;}
+  @keyframes simIn{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+  .sim-row.dying{animation:simOut .5s ease forwards;}
+  @keyframes simOut{ to{opacity:.3; background:var(--danger-tint);} }
+  .sim-badge{width:32px; height:32px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:12px; flex-shrink:0;}
+  .sim-status{font-size:13px; color:var(--blue); font-weight:600; flex:1;}
+  .sim-status.error{color:var(--danger);}
+  .sim-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .sim-btn{border:1.5px solid var(--blue); background:#fff; color:var(--blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600;}
+  .sim-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .sim-btn.danger{border-color:var(--danger); color:var(--danger);}
+  .sim-note{margin-top:12px; font-size:13px; padding:10px 12px; border-radius:8px; display:none;}
+  .sim-note.show{display:block; background:var(--success-tint); color:var(--success-text);}
+  @media (prefers-reduced-motion: reduce){ .sim-row{animation:none;} .sim-row.dying{animation:none; opacity:.3; background:var(--danger-tint);} }
+
+  /* order the flow exercise */
+  .flow-pool{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;}
+  .flow-chip{border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:600; color:var(--navy);}
+  .flow-chip:disabled{opacity:.35; cursor:default;}
+  .flow-chip.wrong{border-color:var(--danger); background:var(--danger-tint); color:var(--danger);}
+  .flow-sequence{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; min-height:52px; padding:12px; border:1.5px dashed var(--line); border-radius:12px;}
+  .flow-slot{display:flex; align-items:center; gap:6px; background:var(--success-tint); border:1px solid var(--success); border-radius:8px; padding:8px 12px; font-size:13px; font-weight:600; color:var(--success-text);}
+  .flow-slot .n{font-family:'IBM Plex Mono'; font-size:10px; background:var(--success); color:#fff; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center;}
+  .flow-feedback{margin-top:12px; font-size:13px; padding:8px 10px; border-radius:8px; display:none;}
+  .flow-feedback.show{display:block;}
+  .flow-feedback.ok{background:var(--success-tint); color:var(--success-text);}
+  .flow-feedback.bad{background:var(--danger-tint); color:var(--danger);}
+
+  /* matching exercise (relaciona) */
+  .clas-item{border-top:1px solid var(--line); padding:14px 0;}
+  .clas-item:first-child{border-top:none; padding-top:0;}
+  .clas-item .name{font-weight:700; margin-bottom:8px; font-family:'Space Grotesk'; font-size:14.5px; color:var(--navy);}
+  .clas-opts{display:flex; gap:6px; flex-wrap:wrap;}
+  .clas-btn{border:1.5px solid var(--line); background:#fff; padding:7px 12px; border-radius:8px; font-size:12.5px; color:var(--ink-soft);}
+  .clas-btn.picked{border-color:var(--blue); color:var(--blue); font-weight:600; background:#EEF3FA;}
+  .clas-explain{font-size:12.5px; padding:8px 10px; border-radius:6px; display:none; margin-top:8px;}
+  .clas-explain.show{display:block;}
+  .clas-explain.ok{background:var(--success-tint); color:var(--success-text);}
+  .clas-explain.bad{background:var(--danger-tint); color:var(--danger);}
+
+  /* static timeline reference */
+  .mini-timeline{display:flex; justify-content:space-between; margin-top:16px; position:relative; padding:0 4px;}
+  .mini-timeline::before{content:''; position:absolute; top:14px; left:20px; right:20px; height:2px; background:var(--line); z-index:0;}
+  .mt-node{display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; z-index:1; flex:1;}
+  .mt-year{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--blue); font-weight:600;}
+  .mt-dot{width:28px; height:28px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:11px;}
+  .mt-dot.obsolete{background:var(--line); color:var(--ink-soft);}
+  .mt-dot.current{background:var(--teal);}
+  .mt-label{font-size:10.5px; color:var(--ink-soft); text-align:center; max-width:70px;}
+
+  /* conversation animation */
+  .conv-stage{position:relative; height:80px; margin:1vh 6% 0;}
+  .conv-node{position:absolute; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:5px; width:60px;}
+  .conv-node.conv-client{left:-30px;} .conv-node.conv-server{right:-30px;}
+  .conv-node-circle{width:40px; height:40px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:14px;}
+  .conv-node-label{font-size:11px; color:var(--ink-soft); font-weight:600;}
+  .conv-track{position:absolute; top:50%; left:30px; right:30px; height:2px; background:var(--line);}
+  .conv-packet{position:absolute; top:50%; left:8%; transform:translate(-50%,-50%); padding:6px 12px; border-radius:999px; font-family:'IBM Plex Mono'; font-size:12px; font-weight:600; color:#fff; white-space:nowrap; transition:left .7s cubic-bezier(.4,0,.2,1), opacity .25s ease; opacity:0; z-index:2;}
+  .conv-packet.show{opacity:1;}
+  .conv-loss{position:absolute; top:50%; transform:translate(-50%,-50%); width:22px; height:22px; border-radius:50%; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; opacity:0; transition:opacity .2s ease; z-index:3;}
+  .conv-loss.show{opacity:1;}
+  .conv-status{text-align:center; margin-top:1.2vh; font-family:'IBM Plex Mono'; font-size:12.5px; color:var(--ink-soft); min-height:18px;}
+  .conv-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:14px;}
+  .conv-btn{border:1.5px solid var(--line); background:#fff; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:600; color:var(--navy);}
+  .conv-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .conv-btn.tcp-btn{border-color:var(--blue); color:var(--blue);}
+  .conv-btn.udp-btn{border-color:var(--teal); color:var(--teal-text);}
+  .conv-done{display:none; margin-top:10px; text-align:center; font-size:13px; color:var(--success-text); font-weight:600;}
+  .conv-done.show{display:block;}
+  .dual-conv-p{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .dual-conv-p .conv-panel-p{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .dual-conv-p h4{text-align:center; font-family:'Space Grotesk'; font-size:15px; margin-bottom:4px;}
+  @media (prefers-reduced-motion: reduce){ .conv-packet, .conv-loss{transition:none;} }
+  .field-row{margin-bottom:16px;}
+  .iag-row{display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--ink-soft); margin-top:14px;}
+  .iag-row input{margin-top:3px;}
+
+  footer{margin-top:48px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft);}
+  .status-line{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--teal-text); margin-top:10px; min-height:16px;}
+
+  /* modal */
+  .modal-backdrop{position:fixed; inset:0; background:rgba(11,37,69,.6); display:none; align-items:center; justify-content:center; z-index:200; padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal-box{background:#fff; border-radius:16px; max-width:520px; width:100%; padding:28px; position:relative; box-shadow:0 24px 60px rgba(11,37,69,.35); max-height:80vh; overflow-y:auto;}
+  .modal-close{position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:#fff; font-size:16px; color:var(--ink-soft); display:flex; align-items:center; justify-content:center;}
+  .modal-tag{font-family:'IBM Plex Mono'; font-size:11px; color:var(--teal-text); letter-spacing:.06em; text-transform:uppercase;}
+  .modal-term{font-family:'Space Grotesk'; font-size:22px; font-weight:700; color:var(--navy); margin-top:6px;}
+  .modal-def{margin-top:12px; font-size:15px; color:var(--ink); line-height:1.6;}
+  .modal-cite{margin-top:16px; font-size:13px; color:var(--ink-soft); font-style:italic;}
+  .modal-ref{margin-top:10px; padding-top:12px; border-top:1px solid var(--line); font-size:11.5px; color:var(--ink-soft); line-height:1.5;}
+  .modal-ref strong{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin-bottom:4px; font-style:normal;}
+
+  /* ---- dónde trabajas hoy ---- */
+  .where-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .where-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px;}
+  .where-card .tag{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--teal-text); font-weight:600;}
+  .where-card h4{font-family:'Space Grotesk'; font-size:15px; color:var(--navy); margin:4px 0 4px;}
+  .where-card p{margin:0; font-size:13px; color:var(--ink-soft); line-height:1.45;}
+  .save-note{margin-top:12px; font-size:12.5px; color:var(--ink-soft); padding:8px 12px; border-radius:8px; background:var(--bg);}
+  .save-note.warn{background:var(--danger-tint); color:var(--danger);}
+  @media (max-width:640px){ .where-grid{grid-template-columns:1fr;} .code-two{grid-template-columns:1fr;} }
+
+  /* ---- RMI: bloques con letra ---- */
+  .rmi-code{background:var(--navy); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:6px;}
+  .rmi-blk{display:flex; gap:10px; align-items:flex-start; background:rgba(255,255,255,.04); border-radius:8px; padding:8px 10px;}
+  .rmi-letter{width:24px; height:24px; border-radius:6px; background:var(--amber); color:#1F1400; font-family:'Space Grotesk'; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;}
+  .rmi-blk pre{margin:0; color:#E8EEF7; font-family:'IBM Plex Mono', monospace; font-size:12.5px; line-height:1.6; white-space:pre-wrap; overflow-x:auto;}
+  .rmi-q{border-top:1px solid var(--line); padding:14px 0 4px;}
+  .rmi-q:first-of-type{border-top:none;}
+  .rmi-q p{margin:0 0 8px; font-weight:600; font-size:14px;}
+  .rmi-opts{display:flex; gap:6px; flex-wrap:wrap;}
+  .rmi-btn{width:42px; height:38px; border:1.5px solid var(--line); background:#fff; border-radius:8px; font-family:'Space Grotesk'; font-weight:700; color:var(--navy);}
+  .rmi-btn.correct{border-color:var(--success); background:var(--success-tint); color:var(--success-text);}
+  .rmi-btn.incorrect{border-color:var(--danger); background:var(--danger-tint); color:var(--danger);}
+  .rmi-btn:disabled{cursor:default;}
+
+  /* ---- tabla comparativa ---- */
+  .cmp-wrap{overflow-x:auto;}
+  table.cmp{width:100%; border-collapse:collapse;}
+  table.cmp th{font-family:'Space Grotesk'; font-size:14px; color:#fff; background:var(--navy); padding:10px; text-align:left;}
+  table.cmp th:first-child{border-radius:10px 0 0 0;} table.cmp th:last-child{border-radius:0 10px 0 0;}
+  table.cmp td{border-bottom:1px solid var(--line); padding:8px; vertical-align:top; font-size:13px;}
+  table.cmp td.crit{font-weight:700; color:var(--navy); background:var(--bg); font-family:'Space Grotesk'; font-size:14px; padding-top:12px;}
+  table.cmp td.tech{font-family:'IBM Plex Mono', monospace; font-weight:600; color:var(--blue); font-size:13px; vertical-align:middle;}
+  table.cmp select{width:100%; border:1.5px solid var(--line); border-radius:8px; padding:7px 6px; font-family:inherit; font-size:12.5px; color:var(--ink); background:#fff;}
+  table.cmp select.ok{border-color:var(--success); background:var(--success-tint);}
+  table.cmp select.bad{border-color:var(--danger); background:var(--danger-tint);}
+  .cmp-explain{font-size:12.5px; color:var(--ink-soft); padding:4px 8px 10px; display:none;}
+  .cmp-explain.show{display:table-cell;}
+
+  /* ---- pasos, comandos, subida de imagen ---- */
+  .steps{margin:0 0 14px; padding-left:20px; font-size:14px;}
+  .steps li{margin-bottom:6px;}
+  .cmd{display:flex; align-items:center; gap:8px; background:var(--navy); border-radius:10px; padding:10px 12px; margin:10px 0;}
+  .cmd code{flex:1; color:#E8EEF7; font-family:'IBM Plex Mono', monospace; font-size:13px; overflow-wrap:anywhere;}
+  .copy-btn{border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff; border-radius:7px; padding:5px 10px; font-size:12px;}
+  .repo-btn{display:inline-block; background:var(--teal-text); color:#fff; text-decoration:none; border-radius:10px; padding:10px 16px; font-weight:600; font-size:14px;}
+  .err-table{width:100%; border-collapse:collapse; margin-top:8px; font-size:12.5px;}
+  .err-table td{border-top:1px solid var(--line); padding:7px 6px; vertical-align:top;}
+  .err-table td:first-child{font-family:'IBM Plex Mono', monospace; color:var(--danger); width:42%;}
+  .err-title{font-size:13px; font-weight:600; color:var(--navy); margin-top:14px;}
+  .must-show{font-size:13px; background:var(--amber-tint); color:#5C3D00; border-radius:8px; padding:10px 12px; margin:12px 0;}
+  .upload-zone{border:1.5px dashed var(--line); border-radius:12px; padding:14px; text-align:center; background:#fff;}
+  .upload-zone input[type=file]{font-size:13px;}
+  .upload-preview{display:none; margin-top:12px;}
+  .upload-preview.show{display:block;}
+  .upload-preview img{max-width:100%; max-height:320px; border-radius:8px; border:1px solid var(--line);}
+  .upload-meta{font-size:12px; color:var(--ink-soft); margin-top:6px;}
+  .prompt-box{background:#F3F6FB; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:13px; color:var(--ink); line-height:1.5; white-space:pre-wrap;}
+  .resp-box{background:var(--danger-tint); border-left:4px solid var(--danger); border-radius:0 8px 8px 0; padding:10px 12px; font-size:13px; color:#7A2318; margin:12px 0;}
+  .radio-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; font-size:14px;}
+  .radio-row label{font-weight:500; color:var(--ink); display:flex; align-items:center; gap:6px; margin:0;}
+  input[type=url]{border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:inherit; font-size:14px; width:100%; color:var(--ink);}
+  .field-hint{font-size:12px; color:var(--ink-soft); margin-top:4px;}
+  .field-warn{font-size:12px; color:#8A5A00; margin-top:4px; display:none;}
+  .field-warn.show{display:block;}
+  footer, .modal-ref, .err-table td{overflow-wrap:anywhere;}
+  /* ---- v2: diccionario y analogía ---- */
+  .dict-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .dict-card{background:#fff; border:1px solid var(--line); border-left:5px solid var(--blue); border-radius:10px; padding:12px 14px;}
+  .dict-card h4{font-family:'Space Grotesk'; font-size:15.5px; color:var(--navy); margin:0 0 2px; display:flex; gap:8px; align-items:center;}
+  .dict-card .es{font-size:12.5px; color:var(--ink-soft); margin-bottom:6px;}
+  .dict-card p{margin:0; font-size:13.5px; line-height:1.5; color:var(--ink);}
+  .dict-card .ana{margin-top:6px; font-size:12.5px; color:#5C3D00; background:var(--amber-tint); border-radius:6px; padding:4px 8px; display:inline-block;}
+  .dict-ref{background:none; border:none; padding:0; margin-top:6px; font-size:12px; font-style:italic; color:var(--ink-soft); text-decoration:underline dotted; display:block;}
+  .dict-sub{font-size:13px; color:var(--ink-soft); margin:14px 0 8px; font-weight:600;}
+  .ana-row{display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--line); flex-wrap:wrap;}
+  .ana-row:first-of-type{border-top:none;}
+  .ana-ico{font-size:24px; width:32px; text-align:center;}
+  .ana-txt{flex:1; min-width:180px; font-size:14px;}
+  .ana-row select{border:1.5px solid var(--line); border-radius:8px; padding:7px 8px; font-family:inherit; font-size:13.5px; min-width:170px; background:#fff;}
+  .ana-row select.ok{border-color:var(--success); background:var(--success-tint);}
+  .ana-row select.bad{border-color:var(--danger); background:var(--danger-tint);}
+  .ana-fb{width:100%; font-size:12.5px; padding:6px 10px; border-radius:6px; display:none; margin-left:44px;}
+  .ana-fb.show{display:block;} .ana-fb.ok{background:var(--success-tint); color:var(--success-text);} .ana-fb.bad{background:var(--danger-tint); color:var(--danger);}
+  .sub-head{font-family:'Space Grotesk'; font-size:15px; color:var(--navy); margin:0 0 6px;}
+  @media (max-width:640px){ .dict-grid{grid-template-columns:1fr;} .ana-fb{margin-left:0;} }
+
+  .missing-list{margin:8px 0 0; padding-left:18px; font-size:13px; color:var(--danger);}
+  .code-line{white-space:pre-wrap; overflow-wrap:anywhere;} .bughunt-code{overflow-x:auto;}
+  .code-two > div{min-width:0;} .code-ref{overflow-x:auto;} .qtext, .opt, .feedback, .bughunt-feedback{overflow-wrap:anywhere;}
+  .ana-txt code{overflow-wrap:anywhere;} .flow-chip, .flow-slot{overflow-wrap:anywhere; text-align:left; max-width:100%;} .ana-txt{min-width:0;}
+
+  /* ====== Simulador paso a paso de una llamada gRPC (cliente | red | servidor) ====== */
+  .rsim{--rs-cli:#2E5CA6; --rs-srv:#1E8E5A; --rs-amber:#E8A33D; --rs-ink:#10202F; --rs-soft:#45586B; --rs-line:#D7DEE8; --rs-navy:#0B2545;
+    display:flex; flex-direction:column; gap:8px; font-family:'IBM Plex Sans', system-ui, sans-serif; color:var(--rs-ink);}
+  .rsim *{box-sizing:border-box;}
+  .rsim-top{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+  .rsim-scen{display:flex; gap:6px; flex-wrap:wrap;}
+  .rsim-scen button{border:1.5px solid var(--rs-line); background:#fff; color:var(--rs-soft); border-radius:999px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer;}
+  .rsim-scen button[aria-pressed="true"]{background:var(--rs-navy); color:#fff; border-color:var(--rs-navy);}
+  .rsim-ctrl{display:flex; gap:6px; align-items:center;}
+  .rsim-ctrl button{border:none; background:var(--rs-navy); color:#fff; border-radius:8px; padding:7px 12px; font-size:13.5px; font-weight:600; cursor:pointer;}
+  .rsim-ctrl button.sec{background:#fff; color:var(--rs-navy); border:1.5px solid var(--rs-line);}
+  .rsim-ctrl button:disabled{opacity:.35; cursor:default;}
+  .rsim-count{font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--rs-soft); min-width:7.5em; text-align:center;}
+  .rsim-grid{display:grid; grid-template-columns:1fr .62fr 1.25fr; gap:10px; align-items:stretch;}
+  .rsim-panel{background:#0D1B2A; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; border:2px solid transparent; transition:border-color .25s;}
+  .rsim-panel.active{border-color:var(--rs-amber);}
+  .rsim-panel.off{opacity:.45;}
+  .rsim-ph{display:flex; justify-content:space-between; align-items:center; padding:6px 10px; font-size:12.5px; font-weight:700; color:#fff;}
+  .rsim-ph.cli{background:var(--rs-cli);} .rsim-ph.srv{background:var(--rs-srv);}
+  .rsim-badge{font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; background:rgba(255,255,255,.18); border-radius:999px; padding:2px 8px; white-space:nowrap;}
+  .rsim-code{padding:6px 0; flex:1;}
+  .rsim-ln{display:flex; font-family:'IBM Plex Mono', monospace; font-size:12px; line-height:1.5; color:#C9D6E8; padding:0 8px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; border-left:4px solid transparent;}
+  .rsim-ln .t{flex:1; min-width:0; padding-left:4ch; text-indent:-4ch;}
+  .rsim-ln .n{width:2.2em; text-align:right; padding-right:.7em; color:#5F7896; flex-shrink:0; user-select:none;}
+  .rsim-ln.done{color:#8EA3BD;}
+  .rsim-ln.cur{background:rgba(232,163,61,.22); color:#fff; border-left-color:var(--rs-amber);}
+  .rsim-ln.cur .n{color:var(--rs-amber);}
+  .rsim-ln.err{background:rgba(192,57,43,.35); color:#fff; border-left-color:#E0605A;}
+  .rsim-lane{display:flex; flex-direction:column; justify-content:space-between; gap:8px; position:relative;}
+  .rsim-stub{background:#fff; border:2px solid var(--rs-line); border-radius:12px; padding:8px 9px; transition:border-color .25s, box-shadow .25s;}
+  .rsim-stub.on{border-color:var(--rs-cli); box-shadow:0 0 0 4px rgba(46,92,166,.15);}
+  .rsim-stub h5{margin:0 0 4px; font-size:12.5px; color:var(--rs-cli); font-family:'Space Grotesk', system-ui, sans-serif;}
+  .rsim-stub ol{margin:0; padding-left:1.25em; font-size:12px; color:var(--rs-soft); line-height:1.45;}
+  .rsim-stub li.on{color:var(--rs-ink); font-weight:700;}
+  .rsim-stub li.ok{color:var(--rs-srv);}
+  .rsim-wire{position:relative; height:46px; border-radius:10px; background:#F1F4F9; border:1px dashed #B8C4D3;}
+  .rsim-wire .lbl{position:absolute; left:50%; top:-1px; transform:translate(-50%,-50%); background:#fff; padding:0 6px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--rs-soft); white-space:nowrap;}
+  .rsim-pkt{position:absolute; top:50%; left:4%; transform:translate(0,-50%); max-width:92%; background:var(--rs-amber); color:#1F1400; border-radius:8px; padding:3px 7px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transition:left .9s cubic-bezier(.4,0,.2,1), opacity .2s;}
+  .rsim-pkt.show{opacity:1;}
+  .rsim-pkt.fail{background:#C0392B; color:#fff;}
+  .rsim-door{position:absolute; right:3px; top:50%; transform:translateY(-50%); font-size:18px;}
+  .rsim-mem{display:grid; grid-template-columns:1fr .62fr 1.25fr; gap:10px;}
+  .rsim-box{background:#fff; border:1px solid var(--rs-line); border-radius:10px; padding:6px 9px; min-height:70px;}
+  .rsim-box h6{margin:0 0 3px; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--rs-soft); font-family:'IBM Plex Mono', monospace;}
+  .rsim-var{font-family:'IBM Plex Mono', monospace; font-size:11.5px; line-height:1.5; color:var(--rs-ink); overflow-wrap:anywhere;}
+  .rsim-var b{color:var(--rs-navy);}
+  .rsim-var.new{background:rgba(232,163,61,.25); border-radius:4px;}
+  .rsim-term{background:#0D1B2A; color:#D7E3F5; font-family:'IBM Plex Mono', monospace; font-size:11px; line-height:1.45; border-radius:8px; padding:5px 8px; margin-top:5px; min-height:36px; overflow-wrap:anywhere;}
+  .rsim-term .er{color:#FF9C8F;}
+  .rsim-bytes{font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7A4E00; overflow-wrap:anywhere; line-height:1.45;}
+  .rsim-exp{display:flex; gap:12px; align-items:flex-start; background:#FCEFD9; border-left:5px solid var(--rs-amber); border-radius:0 12px 12px 0; padding:9px 12px; min-height:62px;}
+  .rsim-exp.bad{background:#FBEAE8; border-left-color:#C0392B;}
+  .rsim-exp .who{flex-shrink:0; font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:700; color:#fff; border-radius:6px; padding:3px 7px; margin-top:2px;}
+  .rsim-exp .who.cli{background:var(--rs-cli);} .rsim-exp .who.srv{background:var(--rs-srv);} .rsim-exp .who.net{background:#A86B00;}
+  .rsim-exp .txt{font-size:15px; line-height:1.45; color:#3A2600;}
+  .rsim-exp.bad .txt{color:#5A1A12;}
+  .rsim-exp .txt code{font-family:'IBM Plex Mono', monospace; background:#fff; border-radius:4px; padding:0 4px; font-size:.92em; color:var(--rs-navy);}
+  .rsim-exp .ana{display:block; margin-top:3px; font-size:13px; color:#7A4E00;}
+  @media (prefers-reduced-motion: reduce){ .rsim-pkt{transition:none;} .rsim-panel{transition:none;} }
+  @media (max-width:760px){ .rsim-grid, .rsim-mem{grid-template-columns:1fr;} }
+  .rsim-stub.skel h5{color:var(--rs-srv);}
+  .rsim-stub.skel.on{border-color:var(--rs-srv); box-shadow:0 0 0 4px rgba(30,142,90,.15);}
+  .rsim-stub code{font-family:'IBM Plex Mono', monospace; font-size:.92em;}
+  .rsim-bread{font-size:11px; color:var(--rs-soft); line-height:1.4; margin-top:4px;}
+  .rsim-bread b{color:#7A4E00; font-family:'IBM Plex Mono', monospace;}
+  .rsim-bytes b{color:#C0392B;}
+  .rsim-stub li.bad{color:#C0392B; font-weight:700; text-decoration:line-through;}
+  .rsim-ln{min-height:1.5em;}
+  @media (max-width:760px){ .rsim-exp{order:1;} .rsim-grid{order:2;} .rsim-mem{order:3;} .rsim-ctrl{flex-wrap:wrap;} }
+
+  .sim-wide{position:relative; left:50%; transform:translateX(-50%); width:min(1240px, calc(100vw - 32px));}
+  .sim-done{margin-top:10px; font-size:14px; color:var(--ink-soft);}
+  .sim-done b{color:#1E8E5A;}
+
+  /* ====== "Por dentro": lo que hacen el stub y el código generado ====== */
+  .rsim-inside-row{display:flex; justify-content:center;}
+  .rsim-inside-btn{border:2px solid #A86B00; background:#FFF6E6; color:#5C3D00; border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .rsim-inside-btn.pulse{background:#E8A33D; color:#1F1400; animation:rinPulse 1.4s ease-in-out infinite;}
+  @keyframes rinPulse{0%,100%{box-shadow:0 0 0 0 rgba(232,163,61,.55);} 50%{box-shadow:0 0 0 8px rgba(232,163,61,0);}}
+  .rin-back{position:fixed; inset:0; z-index:1000; background:rgba(8,20,36,.62); display:none; align-items:center; justify-content:center; padding:2vh 2vw;}
+  .rin-back.open{display:flex;}
+  .rin-card{background:#fff; color:#10202F; width:min(1120px,100%); max-height:94vh; border-radius:16px; display:flex; flex-direction:column; overflow:hidden; font-family:'IBM Plex Sans', system-ui, sans-serif; box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .rin-head{background:#0B2545; color:#fff; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .rin-head h3{margin:0; font-family:'Space Grotesk', system-ui, sans-serif; font-size:19px; flex:1; min-width:220px;}
+  .rin-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .rin-tabs button{border:1.5px solid rgba(255,255,255,.35); background:transparent; color:#D7E3F5; border-radius:999px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .rin-tabs button[aria-selected="true"]{background:#E8A33D; border-color:#E8A33D; color:#1F1400;}
+  .rin-x{border:none; background:rgba(255,255,255,.12); color:#fff; width:34px; height:34px; border-radius:50%; font-size:17px; cursor:pointer;}
+  .rin-body{padding:14px 20px 8px; overflow-y:auto; flex:1;}
+  .rin-step-t{font-family:'Space Grotesk', system-ui, sans-serif; font-size:21px; font-weight:700; color:#0B2545; margin:0 0 4px;}
+  .rin-step-t span{font-family:'IBM Plex Mono', monospace; font-size:13px; color:#A86B00; margin-right:8px;}
+  .rin-vis{background:#F3F6FA; border-radius:12px; padding:14px; margin:8px 0 10px; display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:center; min-height:120px;}
+  .rin-txt{font-size:16.5px; line-height:1.5; margin:0 0 6px;}
+  .rin-txt code, .rin-vis code, .rin-note code{font-family:'IBM Plex Mono', monospace; background:#E6ECF4; color:#0B2545; border-radius:4px; padding:0 5px; font-size:.92em;}
+  .rin-note{font-size:13.5px; color:#45586B; margin:4px 0 0; line-height:1.45;}
+  .rin-src{font-size:12px; color:#7F93AD; margin-top:6px;}
+  .rin-code{font-family:'IBM Plex Mono', monospace; font-size:14px; background:#0D1B2A; color:#D7E3F5; border-radius:10px; padding:8px 12px; white-space:pre-wrap; overflow-wrap:anywhere; margin:0;}
+  .rin-code b{color:#FFD08A;}
+  .rin-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 20px; border-top:1px solid #E3E8EF;}
+  .rin-foot button{border:none; background:#0B2545; color:#fff; border-radius:8px; padding:8px 16px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .rin-foot button.sec{background:#fff; color:#0B2545; box-shadow:inset 0 0 0 1.5px #D7DEE8;}
+  .rin-foot button:disabled{opacity:.35; cursor:default;}
+  .rin-dots{display:flex; gap:6px;}
+  .rin-dots i{width:9px; height:9px; border-radius:50%; background:#D7DEE8; display:block;}
+  .rin-dots i.on{background:#E8A33D;}
+  /* caja (objeto en memoria) */
+  .rin-box{border:3px solid #1E8E5A; border-radius:12px; background:#EAF7EF; padding:30px 10px 10px; position:relative; min-width:230px;}
+  .rin-box.req{border-color:#2E5CA6; background:#EAF0FA;}
+  .rin-box .lid{position:absolute; top:-3px; left:-3px; right:-3px; background:#1E8E5A; color:#fff; border-radius:10px 10px 0 0; padding:4px 0; text-align:center; font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:13.5px;}
+  .rin-box.req .lid{background:#2E5CA6;}
+  .rin-slot{border:2px dashed #7FA9D9; background:#fff; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:14px;}
+  .rin-box:not(.req) .rin-slot{border-color:#7CC39E;}
+  .rin-slot .k{display:block; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:#45586B;}
+  .rin-slot .v{font-family:'IBM Plex Mono', monospace; font-weight:700; color:#0B2545;}
+  .rin-slot.fill{animation:rinFill .5s ease both;}
+  @keyframes rinFill{from{background:#FFE7B8;} to{background:#fff;}}
+  /* bytes */
+  .rin-bytes{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:flex-start;}
+  .rin-grp{display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .rin-cells{display:flex; gap:3px; flex-wrap:wrap; justify-content:center;}
+  .rin-b{font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:700; min-width:30px; height:32px; padding:0 4px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:#fff; border:2px solid #C9D3E0; color:#10202F;}
+  .rin-b.tag{background:#EDE6F8; border-color:#7B5BC4; color:#3E2380;}
+  .rin-b.len{background:#FCEFD9; border-color:#E8A33D; color:#5C3D00;}
+  .rin-b.dat{background:#E3F4EA; border-color:#1E8E5A; color:#0F4D2F;}
+  .rin-b.env{background:#E6ECF4; border-color:#6B7F99; color:#23364D;}
+  .rin-b.small{font-size:12.5px; min-width:24px; height:26px;}
+  .rin-b.hit{outline:3px solid #C0392B; outline-offset:1px;}
+  .rin-b.dim{opacity:.35;}
+  .rin-anim .rin-b{animation:rinIn .35s ease both; animation-delay:calc(var(--i,0) * 70ms);}
+  @keyframes rinIn{from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:none;}}
+  .rin-lbl{font-size:12px; color:#45586B; text-align:center; line-height:1.3; max-width:260px;}
+  .rin-lbl b{color:#0B2545;}
+  /* tabla de letras */
+  .rin-tbl{border-collapse:collapse; font-size:14.5px;}
+  .rin-tbl td, .rin-tbl th{border:1px solid #D7DEE8; padding:4px 10px; text-align:center;}
+  .rin-tbl th{background:#0B2545; color:#fff; font-weight:600; font-size:12.5px;}
+  .rin-tbl td.h{font-family:'IBM Plex Mono', monospace; font-weight:700; color:#0F4D2F; background:#E3F4EA;}
+  .rin-tbl td.c{font-family:'IBM Plex Mono', monospace; font-weight:700;}
+  .rin-formula{display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+  .rin-fcard{background:#fff; border:1px solid #D7DEE8; border-radius:10px; padding:10px 14px; font-size:15px; line-height:1.6; text-align:center;}
+  .rin-fcard .big{font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:700; color:#3E2380;}
+  /* sobre */
+  .rin-envl{border:2px solid #6B7F99; border-radius:10px; background:#fff; overflow:hidden; min-width:280px; max-width:100%;}
+  .rin-envl .h{background:#E6ECF4; padding:6px 10px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#23364D; line-height:1.5; overflow-wrap:anywhere;}
+  .rin-envl .h b{color:#0B2545;}
+  .rin-envl .bd{padding:8px 10px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;}
+  .rin-wire{position:relative; width:100%; height:54px; border-radius:10px; background:#fff; border:1px dashed #B8C4D3; overflow:hidden;}
+  .rin-wire .end{position:absolute; top:50%; transform:translateY(-50%); font-size:12.5px; font-weight:700; color:#45586B;}
+  .rin-wire .end.l{left:8px;} .rin-wire .end.r{right:8px;}
+  .rin-pk{position:absolute; top:50%; transform:translateY(-50%); background:#E8A33D; color:#1F1400; border-radius:7px; padding:3px 8px; font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:700; white-space:nowrap; animation:rinMove 2.4s ease-in-out infinite;}
+  .rin-pk.back{background:#1E8E5A; color:#fff; animation:rinMoveBack 1.6s ease-in-out 1 both;}
+  .rin-pk.d1{animation-delay:1.2s;} .rin-pk.d2{animation-delay:2.4s;}
+  @keyframes rinMove{0%{left:70px; opacity:0;} 10%{opacity:1;} 85%{opacity:1;} 100%{left:calc(100% - 230px); opacity:0;}}
+  @keyframes rinMoveBack{0%{left:calc(100% - 230px); opacity:0;} 10%{opacity:1;} 85%{opacity:1;} 100%{left:70px; opacity:0;}}
+  .rin-read{font-size:16px; min-height:2.8em; text-align:center; background:#FFF6E6; border-radius:10px; padding:8px 12px; width:100%;}
+  .rin-read b{color:#C0392B;}
+  .rin-try{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; width:100%;}
+  .rin-try input{font-family:'IBM Plex Mono', monospace; font-size:15px; padding:6px 10px; border:1.5px solid #C9D3E0; border-radius:8px; width:170px;}
+  .rin-try label{font-size:13px; color:#45586B;}
+  .rin-mini{border:1px solid #D7DEE8; border-radius:10px; padding:8px 12px; background:#fff; font-size:14px; line-height:1.5;}
+  .rin-seq{display:flex; flex-direction:column; gap:6px; width:100%;}
+  .rin-seq .row{display:flex; align-items:center; gap:10px;}
+  .rin-seq .row.r{justify-content:flex-end;}
+  .rin-seq .pill{border-radius:8px; padding:5px 10px; font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:600;}
+  .rin-seq .go{background:#D6E2F5; color:#15356B;} .rin-seq .bk{background:#CDEBDC; color:#0F4D2F;} .rin-seq .st{background:#0B2545; color:#fff;}
+  @media (prefers-reduced-motion: reduce){ .rin-anim .rin-b, .rin-pk, .rsim-inside-btn.pulse, .rin-slot.fill{animation:none;} .rin-pk{left:40%;} }
+  @media (max-width:700px){ .rin-step-t{font-size:18px;} .rin-txt{font-size:15px;} .rin-b{min-width:24px; height:28px; font-size:13px;} }
+  .pat-mini{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:6px 0 14px;}
+  .pat-mini div{border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:#fff; font-size:13px; line-height:1.35;}
+  .pat-mini div.now{border:2px solid var(--success);}
+  .pat-mini b{display:block; color:var(--navy);}
+  .pat-mini span{color:var(--ink-soft);}
+  @media (max-width:640px){ .pat-mini{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="Universidad de Colima">
+    <span>Programación Distribuida — Unidad II</span>
+  </div>
+  <div class="progress-dots" id="progressDots" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">Sesión 14 · Actividad en clase</span>
+    <h1>gRPC streaming: una petición, muchas respuestas</h1>
+    <p>El martes, una llamada traía una caja de regreso. Hoy, la misma llamada trae varias, una tras otra. Ves cómo funciona línea por línea, cazas los errores más comunes y haces que tu servidor mande un mensaje por cada dígito de tu matrícula.</p>
+  </div>
+
+  <!-- DÓNDE TRABAJAS HOY -->
+  <section class="block" id="s0">
+    <div class="block-head"><span class="block-num">→</span><h2>Dónde vas a trabajar hoy</h2></div>
+    <div class="panel">
+      <div class="where-grid">
+        <div class="where-card"><span class="tag">Bloques 00–04</span><h4>Aquí, en esta página</h4><p>Diccionario, simulador paso a paso, ejercicios y quiz en el navegador (~30 min).</p></div>
+        <div class="where-card"><span class="tag">Bloque 05</span><h4>Tu Codespace, dos terminales</h4><p>Agregas un método de streaming al contrato, al servidor y a un cliente nuevo, con tu matrícula.</p></div>
+        <div class="where-card"><span class="tag">Bloques 06–07</span><h4>Aquí otra vez</h4><p>Confianza, reflexión y tu PDF para Classroom.</p></div>
+      </div>
+      <div class="save-note" id="saveNote">Tu avance se guarda en este navegador mientras trabajas. Si cambias de computadora, empiezas de nuevo.</div>
+    </div>
+  </section>
+
+  <!-- 00. DICCIONARIO -->
+  <section class="block" id="sDict">
+    <div class="block-head"><span class="block-num">00</span><h2>Tu diccionario de la sesión</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">Consúltalo cada vez que una palabra no te quede clara. Cada término trae su equivalente en el restaurante y la fuente de donde sale la definición.</p>
+      <div class="dict-sub">Las 4 palabras clave de hoy</div>
+      <div class="dict-grid" id="dictKey"></div>
+      <div class="dict-sub">Otras piezas del código y repaso</div>
+      <div class="dict-grid" id="dictOther"></div>
+    </div>
+  </section>
+
+  <!-- ▶ SIMULADOR -->
+  <section class="block" id="sSim">
+    <div class="block-head"><span class="block-num">▶</span><h2>Simulador: mira cada línea ejecutarse</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">A la izquierda corre <code>cliente_varios.py</code>; a la derecha, <code>servidor.py</code>; en medio, el stub y el código generado. Presiona <b>Siguiente</b> y fíjate en tres cosas: qué línea se ejecuta (amarillo), qué aparece en la memoria y qué se imprime en cada terminal. Recorre los cuatro escenarios completos: queda registrado en tu PDF.</p>
+    </div>
+    <div class="sim-wide" style="margin-top:12px;"><div id="rpcSim"></div></div>
+    <div class="sim-done" id="simDone">Escenarios recorridos completos: 0 de 4.</div>
+  </section>
+
+  <!-- 01. QUIÉN ES QUIÉN -->
+  <section class="block" id="s1">
+    <div class="block-head"><span class="block-num">01</span><h2>¿Qué patrón es?</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">Para cada situación, piensa: ¿cuántas cajas van del cliente al servidor y cuántas regresan? Elige el patrón y presiona "Revisar".</p>
+      <div class="pat-mini">
+        <div><b>Unaria</b><span>1 de ida → 1 de regreso</span></div>
+        <div class="now"><b>Server streaming</b><span>1 de ida → muchas de regreso</span></div>
+        <div><b>Client streaming</b><span>muchas de ida → 1 de regreso</span></div>
+        <div><b>Bidireccional</b><span>muchas ↔ muchas, cuando quieran</span></div>
+      </div>
+      <div id="anaList"></div>
+      <button class="primary-btn" id="btnCheckAna" type="button">Revisar</button>
+    </div>
+  </section>
+
+  <!-- 02. BUGS -->
+  <section class="block" id="s2">
+    <div class="block-head"><span class="block-num">02</span><h2>Encuentra el bug</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">Cada programa casi funciona, pero tiene un error. Toca la línea donde crees que está. Al encontrarlo verás el mensaje real que aparece en la terminal: así lo reconocerás en tu Codespace.</p>
+      <div class="bughunt"><div class="bughunt-title">Reto 1 · AttributeError: '_MultiThreadedRendezvous' object has no attribute 'mensaje'</div><div class="bughunt-code" id="bug1Code"></div><div class="bughunt-feedback" id="bug1Feedback"></div></div>
+      <div class="bughunt"><div class="bughunt-title">Reto 2 · UNKNOWN: 'SaludoResponse' object is not an iterator</div><div class="bughunt-code" id="bug2Code"></div><div class="bughunt-feedback" id="bug2Feedback"></div></div>
+      <div class="bughunt"><div class="bughunt-title">Reto 3 · INTERNAL: Failed to serialize response!</div><div class="bughunt-code" id="bug3Code"></div><div class="bughunt-feedback" id="bug3Feedback"></div></div>
+      <div class="bughunt"><div class="bughunt-title">Reto 4 · UNIMPLEMENTED: Method not implemented!</div><div class="bughunt-code" id="bug4Code"></div><div class="bughunt-feedback" id="bug4Feedback"></div></div>
+    </div>
+  </section>
+
+  <!-- 03. QUIZ -->
+  <section class="block" id="s3">
+    <div class="block-head"><span class="block-num">03</span><h2>Quiz rápido de comprensión</h2></div>
+    <div class="panel" id="quizPanel">
+      <div class="quiz-score mono" id="quizScore"></div>
+    </div>
+  </section>
+
+  <!-- 04. ORDENA -->
+  <section class="block" id="s4">
+    <div class="block-head"><span class="block-num">04</span><h2>Ordena lo que pasa en una llamada de streaming</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">Desde que el cliente llama hasta que imprime “Fin del stream”. Toca las tarjetas en el orden en que ocurren (si dudas, recorre otra vez el simulador).</p>
+      <div class="flow-pool" id="flowPool"></div>
+      <div class="flow-sequence" id="flowSequence"></div>
+      <div class="flow-feedback" id="flowFeedback"></div>
+    </div>
+  </section>
+
+  <!-- 05. LABORATORIO -->
+  <section class="block" id="s5">
+    <div class="block-head"><span class="block-num">05</span><h2>Laboratorio: un mensaje por cada dígito de tu matrícula</h2></div>
+    <div class="panel">
+      <p style="margin-top:0; font-size:14px; color:var(--ink-soft);">En tu Codespace (github.com/codespaces → tu Codespace → Open), con <strong>dos terminales</strong>. El orden importa: <strong>.proto → compilar → servidor (reiniciar) → cliente</strong>.</p>
+      <ol class="steps">
+        <li><strong>saludo.proto:</strong> dentro de <code>service Saludador</code>, debajo de la línea de <code>SaludarUno</code>, agrega:</li>
+      </ol>
+      <div class="cmd"><code id="cmdProto">rpc SaludarVarios (SaludoRequest) returns (stream SaludoResponse);</code><button class="copy-btn" type="button" data-copy="cmdProto">Copiar</button></div>
+      <ol class="steps" start="2"><li>Guarda y compila en la terminal 1:</li></ol>
+      <div class="cmd"><code id="cmdComp">bash compilar.sh</code><button class="copy-btn" type="button" data-copy="cmdComp">Copiar</button></div>
+      <ol class="steps" start="3">
+        <li><strong>servidor.py:</strong> en la primera línea del archivo agrega <code>import time</code>. Después, dentro de la clase <code>SaludadorServicio</code> y debajo de <code>SaludarUno</code> (con 4 espacios antes de <code>def</code>), pega el método nuevo:</li>
+      </ol>
+      <div class="code-ref"><pre id="cmdMet">    def SaludarVarios(self, request, context):
+        for i in range(1, 4):
+            time.sleep(1)
+            yield saludo_pb2.SaludoResponse(mensaje=f"Saludo {i} de 3 para {request.nombre}")</pre></div>
+      <button class="copy-btn" type="button" data-copy="cmdMet" style="color:var(--navy); border-color:var(--line);">Copiar</button>
+      <ol class="steps" start="4"><li>Terminal 1: si el servidor ya estaba corriendo, detenlo con <strong>Ctrl+C</strong>. Luego vuelve a correrlo:</li></ol>
+      <div class="cmd"><code id="cmdServ">python servidor.py</code><button class="copy-btn" type="button" data-copy="cmdServ">Copiar</button></div>
+      <ol class="steps" start="5"><li><strong>Archivo nuevo</strong> <code>cliente_varios.py</code> (en el explorador de archivos: clic derecho → <em>New File</em>). Pega esto y cambia el nombre y la matrícula por los tuyos:</li></ol>
+      <div class="code-ref"><pre id="cmdCli">import grpc
+
+import saludo_pb2
+import saludo_pb2_grpc
+
+canal = grpc.insecure_channel("localhost:50051")
+stub = saludo_pb2_grpc.SaludadorStub(canal)
+
+peticion = saludo_pb2.SaludoRequest(nombre="Tu nombre", matricula="TU_MATRICULA")
+for respuesta in stub.SaludarVarios(peticion):
+    print("Llego:", respuesta.mensaje)
+print("Fin del stream")</pre></div>
+      <button class="copy-btn" type="button" data-copy="cmdCli" style="color:var(--navy); border-color:var(--line);">Copiar</button>
+      <ol class="steps" start="6"><li>Terminal 2: <code>python cliente_varios.py</code>. Deben llegar 3 saludos, uno cada segundo.</li></ol>
+      <ol class="steps" start="7">
+        <li><strong>Misión · servidor.py:</strong> cambia el cuerpo de <code>SaludarVarios</code> para que mande <strong>un mensaje por cada dígito de la matrícula</strong>:</li>
+      </ol>
+      <div class="code-ref"><pre id="cmdMision">    def SaludarVarios(self, request, context):
+        print(f"Peticion de streaming: nombre={request.nombre}, matricula={request.matricula}")
+        digitos = [d for d in request.matricula if d.isdigit()]
+        for i, d in enumerate(digitos, start=1):
+            time.sleep(0.5)
+            yield saludo_pb2.SaludoResponse(mensaje=f"Digito {i} de {len(digitos)}: {d}")</pre></div>
+      <button class="copy-btn" type="button" data-copy="cmdMision" style="color:var(--navy); border-color:var(--line);">Copiar</button>
+      <ol class="steps" start="8">
+        <li><strong>Reto (lo escribes tú):</strong> después del ciclo, con 8 espacios de sangría, agrega <strong>un <code>yield</code> más</strong> con la suma de los dígitos. Pista: la línea <code>suma = ...</code> de la sesión 13. Debe imprimirse algo como <code>Llego: Listo, Ana: tus digitos suman 14</code>.</li>
+        <li>Ctrl+C, vuelve a correr el servidor y después el cliente.</li>
+      </ol>
+      <div class="err-title">Si algo sale mal (errores reales, ya resueltos)</div>
+      <table class="err-table">
+        <tr><td>AttributeError: 'SaludadorStub' object has no attribute 'SaludarVarios'</td><td>Cambiaste el <code>.proto</code> y no recompilaste: <code>bash compilar.sh</code> y vuelve a correr los dos.</td></tr>
+        <tr><td>status = StatusCode.UNIMPLEMENTED details = "Method not implemented!"</td><td>El servidor que corre es el viejo (Ctrl+C y vuelve a correrlo) o el método no se llama exactamente <code>SaludarVarios</code>.</td></tr>
+        <tr><td>AttributeError: '_MultiThreadedRendezvous' object has no attribute 'mensaje'</td><td>Usaste la respuesta como una sola caja. Recórrela con <code>for respuesta in stub.SaludarVarios(...):</code></td></tr>
+        <tr><td>StatusCode.UNKNOWN … 'SaludoResponse' object is not an iterator</td><td>Usaste <code>return</code> en lugar de <code>yield</code> en el servidor.</td></tr>
+        <tr><td>StatusCode.UNKNOWN … name 'time' is not defined</td><td>Falta <code>import time</code> al inicio de <code>servidor.py</code>.</td></tr>
+        <tr><td>status = StatusCode.INTERNAL details = "Failed to serialize response!"</td><td>En el <code>.proto</code> falta <code>stream</code> antes de <code>SaludoResponse</code>: agrégalo y recompila.</td></tr>
+        <tr><td>IndentationError: unexpected indent</td><td>El método no tiene la misma sangría que <code>SaludarUno</code> (4 espacios antes de <code>def</code>, 8 dentro).</td></tr>
+        <tr><td>No llega ningún “Digito” y sale “Fin del stream”</td><td>La matrícula llegó vacía: revisa que el cliente la mande entre comillas.</td></tr>
+      </table>
+      <div class="must-show"><strong>Qué debe verse en tu captura:</strong> las <strong>dos terminales</strong> a la vez: el servidor con <em>Peticion de streaming</em> y tu matrícula, y el cliente con un <em>Llego: Digito…</em> por cada dígito, la suma y <em>Fin del stream</em>.</div>
+      <div class="upload-zone">
+        <label for="fileLab" style="margin-bottom:8px;">Captura de tus dos terminales</label>
+        <input type="file" id="fileLab" accept="image/*">
+        <div class="upload-preview" id="prevLab"><img alt="Vista previa de la captura del laboratorio" id="imgLab"><div class="upload-meta" id="metaLab"></div></div>
+      </div>
+      <div class="field-row" style="margin-top:16px; margin-bottom:0;">
+        <label for="reto">Copia aquí todo lo que imprimió tu cliente</label>
+        <textarea id="reto" style="min-height:120px;" placeholder="Llego: Digito 1 de 8: 2&#10;Llego: Digito 2 de 8: 0&#10;…&#10;Fin del stream"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06. CONFIANZA -->
+  <section class="block" id="s6">
+    <div class="block-head"><span class="block-num">06</span><h2>Nivel de confianza</h2></div>
+    <div class="panel">
+      <p style="font-size:14px; color:var(--ink-soft); margin-top:0;">¿Qué tan seguro te sientes escribiendo un método de streaming con <code>yield</code> y un cliente con <code>for</code>, y corrigiendo sus errores?</p>
+      <div class="conf-row" id="confRow" role="group" aria-label="Nivel de confianza del 1 al 5">
+        <button class="conf-btn" type="button" data-v="1">1<br>Nada seguro</button>
+        <button class="conf-btn" type="button" data-v="2">2</button>
+        <button class="conf-btn" type="button" data-v="3">3<br>Más o menos</button>
+        <button class="conf-btn" type="button" data-v="4">4</button>
+        <button class="conf-btn" type="button" data-v="5">5<br>Muy seguro</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07. REFLEXIÓN -->
+  <section class="block" id="s7">
+    <div class="block-head"><span class="block-num">07</span><h2>Reflexión de cierre</h2></div>
+    <div class="panel">
+      <div class="field-row">
+        <label for="reflexion">Explica con tus palabras la diferencia entre <code>return</code> y <code>yield</code> en tu servidor, y por qué tu cliente necesita un <code>for</code>. Da un ejemplo de una app que creas que usa server streaming.</label>
+        <textarea id="reflexion" placeholder="Escribe tu respuesta aquí..."></textarea>
+      </div>
+      <div class="field-row" style="margin-bottom:0;">
+        <label for="confuso">¿Qué parte de hoy te quedó menos clara? (opcional)</label>
+        <textarea id="confuso" style="min-height:60px;" placeholder="Una línea basta. Sirve para que el profesor lo retome el martes."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVIDENCIA -->
+  <section class="block">
+    <div class="block-head"><span class="block-num">✓</span><h2>Generar evidencia</h2></div>
+    <div class="panel evidence-panel">
+      <div class="field-row">
+        <label for="matricula">Tu matrícula</label>
+        <input type="text" id="matricula" placeholder="Ej. 20201234">
+      </div>
+      <div class="iag-row">
+        <input type="checkbox" id="usoIA">
+        <label for="usoIA" style="margin:0; font-weight:400; color:var(--ink-soft);">Usé IA generativa como apoyo para el laboratorio o para mi reflexión (declaratoria de uso de IAG — Acuerdo No. 23/2024 UdeC).</label>
+      </div>
+      <button class="primary-btn" id="btnPDF" type="button">Generar mi evidencia (PDF)</button>
+      <div class="status-line" id="statusLine"></div>
+      <ul class="missing-list" id="missingList"></ul>
+    </div>
+  </section>
+
+  <footer>
+    Material preparado por el profesor con apoyo de IA generativa (Claude), revisado antes de su uso en clase, en apego al Acuerdo No. 23/2024 de los Lineamientos institucionales para el uso de IAG — Universidad de Colima, Facultad de Telemática.
+    <div id="fullRefsList" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line); font-style:normal;"></div>
+  </footer>
+
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTerm">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" aria-label="Cerrar" type="button">✕</button>
+    <span class="modal-tag" id="modalTag"></span>
+    <div class="modal-term" id="modalTerm"></div>
+    <div class="modal-def" id="modalDef"></div>
+    <div class="modal-cite" id="modalCite"></div>
+    <div class="modal-ref" id="modalRef"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "pd_s14_streaming_v1";
+  var restoring = false;
+
+  /* ================== progreso ================== */
+  var PROGRESS_KEYS = ["ana","bugs","quiz","flow","lab","conf","refl"];
+  var progress = {};
+  var dotsWrap = document.getElementById("progressDots");
+  dotsWrap.innerHTML = PROGRESS_KEYS.map(function(){ return "<span></span>"; }).join("");
+  var dotEls = dotsWrap.querySelectorAll("span");
+  function paintDots(){ PROGRESS_KEYS.forEach(function(k, i){ dotEls[i].classList.toggle("done", !!progress[k]); }); }
+  function markDone(key){ progress[key] = true; paintDots(); }
+  function unmark(key){ progress[key] = false; paintDots(); }
+
+  /* ================== estado y guardado ================== */
+  var STATE = { v:1, ana:{}, anaChecked:false, bugs:{}, bugMisses:{}, quiz:[], flow:[], conf:null, imgLab:null, sim:[] };
+  var TEXT_IDS = ["reto","reflexion","confuso","matricula"];
+  var saveNote = document.getElementById("saveNote");
+  var storageOk = true;
+  function save(){
+    if(restoring) return;
+    TEXT_IDS.forEach(function(id){ STATE[id] = document.getElementById(id).value; });
+    STATE.usoIA = document.getElementById("usoIA").checked;
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+      if(!storageOk){ storageOk = true; saveNote.classList.remove("warn"); saveNote.textContent = "Tu avance se guarda en este navegador mientras trabajas."; }
+    } catch(e){
+      storageOk = false;
+      saveNote.classList.add("warn");
+      saveNote.textContent = "No se pudo guardar tu avance en este navegador (modo privado o espacio lleno). No cierres esta pestaña hasta generar tu PDF.";
+    }
+  }
+  var saveTimer = null;
+  function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
+
+  /* ================== referencias (APA 7) ================== */
+  var REFERENCES = {
+    grpcconcepts: "gRPC Authors. (s.f.-c). <em>Core concepts, architecture and lifecycle</em>. gRPC Documentation. grpc.io/docs/what-is-grpc/core-concepts",
+    grpcpybasics: "gRPC Authors. (s.f.-e). <em>Basics tutorial: Python</em>. gRPC Documentation. grpc.io/docs/languages/python/basics",
+    grpcstatus: "gRPC Authors. (s.f.-f). <em>Status codes and their use in gRPC</em>. gRPC Documentation. grpc.io/docs/guides/status-codes",
+    pyglossary: "Python Software Foundation. (s.f.-a). <em>Glossary: generator, iterator</em>. Python 3 Documentation. docs.python.org/3/glossary.html",
+    pytutorial: "Python Software Foundation. (s.f.-b). <em>The Python tutorial: 9.9 Generators</em>. Python 3 Documentation. docs.python.org/3/tutorial/classes.html#generators",
+    pbenc: "Google. (s.f.-c). <em>Encoding</em>. Protocol Buffers Documentation. protobuf.dev/programming-guides/encoding",
+    grpchttp2: "gRPC Authors. (s.f.-g). <em>gRPC over HTTP2</em>. GitHub, grpc/grpc. github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md",
+    vansteen: "Van Steen, M., y Tanenbaum, A. S. (2023). <em>Distributed systems</em> (4.ª ed.). distributed-systems.net/index.php/books/ds4"
+  };
+
+  document.getElementById("fullRefsList").innerHTML =
+    "<strong style=\"display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin-bottom:6px;\">Referencias (APA 7.ª ed.)</strong>" +
+    Object.keys(REFERENCES).map(function(k){ return REFERENCES[k]; }).sort(function(x, y){ return x.replace(/<[^>]+>/g,"").localeCompare(y.replace(/<[^>]+>/g,""), "es"); }).join("<br><br>");
+
+  /* ================== modal ================== */
+  var modalBackdrop = document.getElementById("modalBackdrop");
+  var modalClose = document.getElementById("modalClose");
+  var lastTrigger = null;
+  function openModal(trigger, opts){
+    lastTrigger = trigger;
+    document.getElementById("modalTag").textContent = opts.tag || "";
+    document.getElementById("modalTerm").textContent = opts.term;
+    var def = document.getElementById("modalDef");
+    def.textContent = opts.def || ""; def.style.display = opts.def ? "block" : "none";
+    document.getElementById("modalCite").textContent = "";
+    document.getElementById("modalRef").innerHTML = "<strong>Referencia completa</strong>" + opts.refs.map(function(k){ return REFERENCES[k]; }).join("<br><br>");
+    modalBackdrop.classList.add("open");
+    modalClose.focus();
+    document.addEventListener("keydown", onModalKeydown);
+  }
+  function closeModal(){
+    modalBackdrop.classList.remove("open");
+    document.removeEventListener("keydown", onModalKeydown);
+    if(lastTrigger) lastTrigger.focus();
+  }
+  function onModalKeydown(e){ if(e.key === "Escape") closeModal(); }
+  modalClose.addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", function(e){ if(e.target === modalBackdrop) closeModal(); });
+
+  /* ================== copiar ================== */
+  document.querySelectorAll(".copy-btn[data-copy]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var txt = document.getElementById(btn.getAttribute("data-copy")).textContent;
+      var done = function(){ var old = btn.textContent; btn.textContent = "Copiado ✓"; setTimeout(function(){ btn.textContent = old; }, 1400); };
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){}); }
+    });
+  });
+
+  /* ================== 00. diccionario ================== */
+  var DICT = [
+    { key:true, ico:"🌊", color:"#A86B00", term:"stream", es:"se pronuncia “estrim” · flujo", def:"Una secuencia de mensajes que viajan uno tras otro dentro de una misma llamada. En el .proto se marca con la palabra stream antes del tipo: returns (stream SaludoResponse). No son varias llamadas: es una llamada con varias cajas.", ana:"Un menú de varios tiempos", refs:["grpcconcepts"] },
+    { key:true, ico:"📤", color:"var(--success)", term:"Server streaming", es:"flujo desde el servidor", def:"El cliente envía una petición y obtiene un flujo para leer una secuencia de mensajes de regreso. Lee del flujo hasta que ya no hay más mensajes.", ana:"Pides una vez y los platos llegan uno por uno", refs:["grpcconcepts","grpcpybasics"] },
+    { key:true, ico:"🧑‍🍳", color:"var(--success)", term:"yield", es:"se pronuncia “yild” · entregar y seguir", def:"Entrega un valor y pausa la función en ese punto; la siguiente vez continúa justo donde se quedó. Una función con yield es un generador. En gRPC, cada yield es una caja que sale hacia el cliente.", ana:"Servir un plato y seguir cocinando", refs:["pytutorial","pyglossary","grpcpybasics"] },
+    { key:true, ico:"🔁", color:"var(--blue)", term:"for sobre el flujo", es:"recorrer uno por uno", def:"stub.SaludarVarios(peticion) regresa de inmediato un iterador. El for toma una caja en cada vuelta, espera la siguiente y termina solo cuando el servidor avisa que ya no hay más.", ana:"Recibir cada plato conforme llega a la mesa", refs:["grpcpybasics","pyglossary"] },
+    { ico:"1→1", color:"#5B3FA3", term:"Llamada unaria (repaso)", es:"unary RPC · SaludarUno", def:"Una petición, una respuesta. En el .proto no lleva la palabra stream; en el servidor se usa return.", ana:"Un plato y se cierra la cocina", refs:["grpcconcepts"] },
+    { ico:"📥", color:"var(--net)", term:"Client streaming", es:"flujo desde el cliente", def:"El cliente escribe una secuencia de mensajes y los envía; el servidor responde una sola vez al terminar de leerlos. Ejemplo: subir un archivo por partes. Hoy solo como idea.", ana:"Ir pidiendo varias cosas y recibir la cuenta al final", refs:["grpcconcepts"] },
+    { ico:"↔️", color:"var(--net)", term:"Streaming bidireccional", es:"bidirectional streaming", def:"Los dos lados mandan una secuencia de mensajes usando un flujo de lectura y escritura, de forma independiente. Ejemplo: un chat. Hoy solo como idea.", ana:"Una conversación con el mesero", refs:["grpcconcepts"] },
+    { ico:"🏁", color:"var(--amber)", term:"Fin del stream", es:"el aviso de que ya no hay más", def:"Cuando el método del servidor termina (se acaba el ciclo), gRPC envía al cliente un aviso con estado OK. No es una caja: es la señal que hace terminar el for.", ana:"El mesero avisa: “ese fue el último tiempo”", refs:["grpcconcepts"] },
+    { ico:"⚠️", color:"var(--danger)", term:"UNKNOWN e INTERNAL", es:"códigos de estado", def:"UNKNOWN aparece cuando el método del servidor lanza una excepción (por ejemplo, return en vez de yield, o falta import time). INTERNAL aparece si el servidor manda algo que no puede convertir en bytes (yield sin stream en el .proto).", ana:"“Algo salió mal en la cocina”", refs:["grpcstatus"] }
+  ];
+
+  (function renderDict(){
+    var k = document.getElementById("dictKey"), o = document.getElementById("dictOther");
+    DICT.forEach(function(d){
+      var c = document.createElement("div"); c.className = "dict-card"; c.style.borderLeftColor = d.color;
+      c.innerHTML = '<h4><span aria-hidden="true">' + d.ico + '</span>' + d.term + '</h4><div class="es">' + d.es + '</div><p>' + d.def + '</p><span class="ana">🍽️ En el restaurante: ' + d.ana + '</span>';
+      var b = document.createElement("button"); b.type = "button"; b.className = "dict-ref"; b.textContent = "Ver fuente (APA 7)";
+      b.addEventListener("click", function(){ openModal(b, { tag:"Diccionario de la sesión", term:d.term, def:d.def, refs:d.refs }); });
+      c.appendChild(b);
+      (d.key ? k : o).appendChild(c);
+    });
+  })();
+
+  /* ================== 01. ¿quién es quién en el .proto? ================== */
+  var anaData = [
+    { id:"a1", ico:"🔐", txt:"Iniciar sesión: mandas usuario y contraseña y te responden sí o no.", correct:"Unaria (1 → 1)", fb:"Una pregunta, una respuesta: como SaludarUno." },
+    { id:"a2", ico:"📶", txt:"Una descarga larga te va avisando 10 %… 50 %… listo.", correct:"Server streaming (1 → muchas)", fb:"Pides una vez y el servidor manda varios avisos mientras trabaja." },
+    { id:"a3", ico:"📤", txt:"Subes un video grande en partes y al final te responden “listo”.", correct:"Client streaming (muchas → 1)", fb:"Muchas cajas de ida y una sola de regreso." },
+    { id:"a4", ico:"💬", txt:"Un chat donde los dos escriben cuando quieren.", correct:"Bidireccional (muchas ↔ muchas)", fb:"Los dos lados mandan mensajes de forma independiente." },
+    { id:"a5", ico:"🎓", txt:"Pides tu kárdex y el servidor manda materia por materia.", correct:"Server streaming (1 → muchas)", fb:"Una petición; los resultados llegan por partes." },
+    { id:"a6", ico:"🏦", txt:"Consultas el saldo de una cuenta.", correct:"Unaria (1 → 1)", fb:"Una pregunta, una cantidad de respuesta." },
+    { id:"a7", ico:"🌡️", txt:"Un sensor manda una lectura cada segundo y al final recibe un resumen.", correct:"Client streaming (muchas → 1)", fb:"Muchas lecturas de ida, un resumen de regreso." }
+  ];
+
+  var ANA_OPTS = ["Unaria (1 → 1)","Server streaming (1 → muchas)","Client streaming (muchas → 1)","Bidireccional (muchas ↔ muchas)"];
+  var anaSelects = {};
+  var anaList = document.getElementById("anaList");
+  anaData.forEach(function(it){
+    var row = document.createElement("div"); row.className = "ana-row";
+    var ico = document.createElement("span"); ico.className = "ana-ico"; ico.setAttribute("aria-hidden","true"); ico.textContent = it.ico;
+    var txt = document.createElement("span"); txt.className = "ana-txt"; txt.textContent = it.txt;
+    row.appendChild(ico); row.appendChild(txt);
+    var sel = document.createElement("select"); sel.id = it.id; sel.setAttribute("aria-label", it.txt);
+    sel.innerHTML = '<option value="">Elige el patrón…</option>' + ANA_OPTS.map(function(o){ return "<option>" + o + "</option>"; }).join("");
+    sel.addEventListener("change", function(){
+      STATE.ana[it.id] = sel.value; sel.classList.remove("ok","bad");
+      if(STATE.anaChecked){ STATE.anaChecked = false; unmark("ana"); }
+      saveSoon();
+    });
+    row.appendChild(sel);
+    var fb = document.createElement("div"); fb.className = "ana-fb"; fb.id = "fb_" + it.id; row.appendChild(fb);
+    anaSelects[it.id] = sel;
+    anaList.appendChild(row);
+  });
+  var anaCorrect = 0;
+  function checkAna(){
+    if(!anaData.every(function(it){ return anaSelects[it.id].value; })){ alert("Elige un patrón para cada situación antes de revisar."); return; }
+    anaCorrect = 0;
+    anaData.forEach(function(it){
+      var sel = anaSelects[it.id], ok = sel.value === it.correct, fb = document.getElementById("fb_" + it.id);
+      if(ok) anaCorrect++;
+      sel.classList.remove("ok","bad"); sel.classList.add(ok ? "ok" : "bad");
+      fb.textContent = (ok ? "Correcto. " : "Es «" + it.correct + "». ") + it.fb;
+      fb.className = "ana-fb show " + (ok ? "ok" : "bad");
+    });
+    STATE.anaChecked = true; markDone("ana"); saveSoon();
+  }
+  document.getElementById("btnCheckAna").addEventListener("click", checkAna);
+
+  /* ================== 02. errores de protoc ================== */
+  var BUGS = [
+    { key:"bug1", lines:['canal = grpc.insecure_channel("localhost:50051")','stub = saludo_pb2_grpc.SaludadorStub(canal)','peticion = saludo_pb2.SaludoRequest(nombre="Ana", matricula="20201234")','respuesta = stub.SaludarVarios(peticion)','print("Llego:", respuesta.mensaje)'], bug:3,
+      ok:"¡Correcto! El error sale en la línea 5, pero nace en la 4: con streaming, la llamada no regresa una caja sino el flujo de cajas. Hay que recorrerlo: for respuesta in stub.SaludarVarios(peticion): y, dentro, print(respuesta.mensaje).",
+      protoc:"AttributeError: '_MultiThreadedRendezvous' object has no attribute 'mensaje'",
+      hint:"Ahí no está. El error aparece en el print, pero piensa: ¿qué regresa una llamada de streaming? ¿Una caja o un flujo?" },
+    { key:"bug2", lines:['    def SaludarVarios(self, request, context):','        for i in range(1, 4):','            time.sleep(1)','            return saludo_pb2.SaludoResponse(mensaje=f"Saludo {i}")'], bug:3,
+      ok:"¡Correcto! return entrega una caja y termina la función. Como el .proto dice stream, el código generado esperaba una serie de cajas que pudiera recorrer. Con yield, la función entrega una caja y sigue.",
+      protoc:"status = StatusCode.UNKNOWN   details = \"Exception iterating responses: 'SaludoResponse' object is not an iterator\"",
+      hint:"Ahí no está. ¿Qué palabra entrega una caja y deja que la función siga?" },
+    { key:"bug3", lines:['service Saludador {','  rpc SaludarUno (SaludoRequest) returns (SaludoResponse);','  rpc SaludarVarios (SaludoRequest) returns (SaludoResponse);','}'], bug:2,
+      ok:"¡Correcto! Falta la palabra stream: returns (stream SaludoResponse). Sin ella, protoc genera un método unario, y gRPC no sabe convertir en bytes lo que regresa un método con yield.",
+      protoc:"status = StatusCode.INTERNAL   details = \"Failed to serialize response!\"",
+      hint:"Ahí no está. El servidor usa yield. ¿Qué palabra del contrato avisa que regresan varias cajas?" },
+    { key:"bug4", lines:['class SaludadorServicio(saludo_pb2_grpc.SaludadorServicer):','    def SaludarUno(self, request, context):','        return saludo_pb2.SaludoResponse(mensaje="Hola")','    def SaludarVario(self, request, context):','        for i in range(1, 4):','            yield saludo_pb2.SaludoResponse(mensaje=f"Saludo {i}")'], bug:3,
+      ok:"¡Correcto! El método se llama SaludarVario (sin la s). Como no coincide con el rpc del .proto, el servidor usa la clase base que generó protoc, y esa responde UNIMPLEMENTED. El nombre debe ser idéntico: SaludarVarios.",
+      protoc:"status = StatusCode.UNIMPLEMENTED   details = \"Method not implemented!\"",
+      hint:"Ahí no está. Compara letra por letra cada nombre de método con el rpc del .proto: SaludarVarios." }
+  ];
+
+  var bugBtns = {};
+  function solveBug(b){
+    STATE.bugs[b.key] = true;
+    var btns = bugBtns[b.key];
+    btns[b.bug].classList.add("correct");
+    btns.forEach(function(el){ el.disabled = true; });
+    var fb = document.getElementById(b.key + "Feedback");
+    fb.innerHTML = "";
+    var p1 = document.createElement("div"); p1.textContent = b.ok; fb.appendChild(p1);
+    var p2 = document.createElement("div"); p2.style.cssText = "margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; background:#0D1B2A; color:#E8EEF7; border-radius:6px; padding:8px 10px; overflow-wrap:anywhere;";
+    p2.textContent = "Lo que dice la terminal →  " + b.protoc; fb.appendChild(p2);
+    fb.className = "bughunt-feedback show ok";
+    if(BUGS.every(function(x){ return STATE.bugs[x.key]; })) markDone("bugs");
+    saveSoon();
+  }
+  BUGS.forEach(function(b){
+    var cont = document.getElementById(b.key + "Code");
+    bugBtns[b.key] = [];
+    STATE.bugMisses[b.key] = STATE.bugMisses[b.key] || 0;
+    b.lines.forEach(function(t, i){
+      var btn = document.createElement("button");
+      btn.className = "code-line"; btn.type = "button";
+      btn.textContent = (i+1) + "   " + t;
+      btn.addEventListener("click", function(){
+        if(STATE.bugs[b.key]) return;
+        if(i === b.bug){ solveBug(b); }
+        else {
+          STATE.bugMisses[b.key] = (STATE.bugMisses[b.key] || 0) + 1;
+          btn.classList.add("wrong");
+          var fb = document.getElementById(b.key + "Feedback");
+          fb.textContent = b.hint; fb.className = "bughunt-feedback show bad";
+          setTimeout(function(){ btn.classList.remove("wrong"); }, 600);
+          saveSoon();
+        }
+      });
+      cont.appendChild(btn);
+      bugBtns[b.key].push(btn);
+    });
+  });
+
+  /* ================== 03. quiz ================== */
+  var quizData = [
+    { q:"¿Qué palabra del .proto convierte un rpc en server streaming?",
+      opts:["stream, antes del tipo de respuesta","yield, al final de la línea","for, antes de rpc","repeated, antes del mensaje"], correct:0,
+      feedback:["Correcto: returns (stream SaludoResponse).","No: yield es de Python y va en el servidor, no en el .proto.","No: for es del cliente, en Python.","No: repeated es otra cosa (un campo con varios valores dentro de UNA caja)."] },
+    { q:"En el método del servidor, ¿qué hace yield?",
+      opts:["Entrega una caja y termina la función","Entrega una caja, pausa la función y luego sigue","Espera un segundo","Recibe la petición del cliente"], correct:1,
+      feedback:["No: eso hace return.","Correcto: la función recuerda dónde iba y continúa con la siguiente vuelta del ciclo.","No: eso lo hace time.sleep(1).","No: la petición llega en el parámetro request."] },
+    { q:"En el cliente, ¿qué regresa stub.SaludarVarios(peticion)?",
+      opts:["Una caja SaludoResponse","Un texto con todos los mensajes juntos","Un flujo (iterador) que se recorre con for","Nada: hay que llamar otra función"], correct:2,
+      feedback:["No: por eso respuesta.mensaje da AttributeError sin for.","No: cada mensaje llega en su propia caja.","Correcto: el for toma una caja en cada vuelta.","No: la misma llamada trae todas las cajas."] },
+    { q:"¿Cómo sabe el for del cliente que ya no vienen más cajas?",
+      opts:["Cuenta hasta 3","El servidor termina su método y gRPC avisa “fin”","El cliente tiene que hacer break","Espera 10 segundos sin recibir nada"], correct:1,
+      feedback:["No: el cliente no sabe cuántas vienen.","Correcto: el aviso de fin no es una caja; hace que el for termine solo.","No: en sockets sí lo hacían a mano; aquí es automático.","No: no hay un tiempo de espera fijo."] },
+    { q:"Agregaste el rpc al .proto, corres el cliente y sale: AttributeError: 'SaludadorStub' object has no attribute 'SaludarVarios'. ¿Qué falta?",
+      opts:["Reiniciar el servidor","Correr bash compilar.sh","Agregar import time","Cambiar el puerto"], correct:1,
+      feedback:["No: el error ocurre en el cliente, antes de enviar nada.","Correcto: sin compilar, el stub viejo no conoce el método nuevo.","No: eso causaría un error en el servidor.","No: no tiene que ver con la conexión."] },
+    { q:"Una barra de progreso que avanza mientras se descarga un archivo es un ejemplo de…",
+      opts:["Llamada unaria","Server streaming","Client streaming","Ninguno"], correct:1,
+      feedback:["No: con unaria solo verías el resultado al final.","Correcto: una petición y muchos avisos de regreso.","No: aquí los mensajes van del servidor al cliente.","Sí es uno de los patrones: piensa hacia dónde van los mensajes."] }
+  ];
+
+  var quizPanel = document.getElementById("quizPanel");
+  var quizScore = document.getElementById("quizScore");
+  var quizState = quizData.map(function(){ return null; });
+  var quizDivs = [];
+  function answerQuiz(qi, oi){
+    if(quizState[qi] !== null) return;
+    quizState[qi] = oi;
+    var item = quizData[qi], qDiv = quizDivs[qi];
+    qDiv.querySelectorAll(".opt").forEach(function(o, idx){
+      o.disabled = true;
+      if(idx === item.correct) o.classList.add("correct");
+      else if(idx === oi) o.classList.add("incorrect");
+    });
+    var fb = document.createElement("div");
+    fb.className = "feedback " + (oi === item.correct ? "ok" : "bad");
+    fb.textContent = item.feedback[oi];
+    qDiv.appendChild(fb);
+    if(quizState.every(function(v){ return v !== null; })){
+      var c = 0; quizState.forEach(function(v, i){ if(v === quizData[i].correct) c++; });
+      quizScore.textContent = "Resultado: " + c + " / " + quizData.length + " correctas";
+      quizScore.classList.add("show");
+      markDone("quiz");
+    }
+    STATE.quiz = quizState.slice(); saveSoon();
+  }
+  quizData.forEach(function(item, qi){
+    var qDiv = document.createElement("div"); qDiv.className = "quiz-q";
+    var qText = document.createElement("p"); qText.className = "qtext"; qText.textContent = (qi+1) + ". " + item.q;
+    qDiv.appendChild(qText);
+    var optsDiv = document.createElement("div"); optsDiv.className = "quiz-opts";
+    item.opts.forEach(function(optText, oi){
+      var b = document.createElement("button"); b.className = "opt"; b.type = "button"; b.textContent = optText;
+      b.addEventListener("click", function(){ answerQuiz(qi, oi); });
+      optsDiv.appendChild(b);
+    });
+    qDiv.appendChild(optsDiv);
+    quizPanel.insertBefore(qDiv, quizScore);
+    quizDivs.push(qDiv);
+  });
+
+  /* ================== 04. ordena la estructura ================== */
+  var flowSteps = [
+    { key:"pide", label:"El cliente envía UNA petición con SaludarVarios" },
+    { key:"y1", label:"El servidor ejecuta el método y llega al primer yield" },
+    { key:"c1", label:"La caja 1 viaja y el for del cliente la imprime" },
+    { key:"resto", label:"El servidor continúa y entrega las demás cajas con yield" },
+    { key:"fin", label:"El método termina y gRPC avisa “fin del stream”" },
+    { key:"sale", label:"El for termina solo y se imprime “Fin del stream”" }
+  ];
+
+  var flowShuffled = ["c1","fin","pide","sale","resto","y1"];
+  var flowBuilt = [];
+  var flowPool = document.getElementById("flowPool");
+  var flowSequence = document.getElementById("flowSequence");
+  var flowFeedback = document.getElementById("flowFeedback");
+  var flowLabels = {}; flowSteps.forEach(function(s){ flowLabels[s.key] = s.label; });
+  var correctFlowOrder = flowSteps.map(function(s){ return s.key; });
+  var flowBtns = {};
+  function placeFlow(key){
+    flowBuilt.push(key);
+    flowBtns[key].disabled = true;
+    var slotEl = document.createElement("div"); slotEl.className = "flow-slot";
+    slotEl.innerHTML = '<span class="n">' + flowBuilt.length + '</span><span></span>';
+    slotEl.lastChild.textContent = flowLabels[key];
+    flowSequence.appendChild(slotEl);
+    flowFeedback.classList.remove("show");
+    if(flowBuilt.length === correctFlowOrder.length){
+      flowFeedback.textContent = "¡Correcto! Una sola petición; cada yield manda una caja que el for recibe en cuanto llega; al terminar el método, gRPC avisa y el for termina solo.";
+      flowFeedback.className = "flow-feedback show ok";
+      markDone("flow");
+    }
+    STATE.flow = flowBuilt.slice(); saveSoon();
+  }
+  flowShuffled.forEach(function(key){
+    var b = document.createElement("button");
+    b.className = "flow-chip"; b.type = "button"; b.textContent = flowLabels[key];
+    flowBtns[key] = b;
+    b.addEventListener("click", function(){
+      if(key === correctFlowOrder[flowBuilt.length]){ placeFlow(key); }
+      else {
+        b.classList.add("wrong");
+        flowFeedback.textContent = "Todavía no. Piensa en el menú de tres tiempos: ¿qué pasa primero? ¿El cliente puede imprimir una caja que todavía no sale de la cocina?";
+        flowFeedback.className = "flow-feedback show bad";
+        setTimeout(function(){ b.classList.remove("wrong"); }, 600);
+      }
+    });
+    flowPool.appendChild(b);
+  });
+
+  /* ================== 05. imagen del laboratorio ================== */
+  function compressImage(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var maxW = 1600, scale = Math.min(1, maxW / img.width);
+        var c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL("image/jpeg", 0.82), c.width, c.height);
+      };
+      img.onerror = function(){ cb(null); };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  function showLab(data){
+    document.getElementById("imgLab").src = data.src;
+    document.getElementById("metaLab").textContent = "Imagen lista (" + data.w + " × " + data.h + " px, " + Math.round(data.src.length * 0.75 / 1024) + " KB).";
+    document.getElementById("prevLab").classList.add("show");
+  }
+  document.getElementById("fileLab").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f) return;
+    if(!/^image\//.test(f.type)){ alert("Sube una imagen (PNG o JPG)."); return; }
+    compressImage(f, function(src, w, h){
+      if(!src){ alert("No se pudo leer esa imagen. Intenta con otra captura."); return; }
+      STATE.imgLab = { src:src, w:w, h:h };
+      showLab(STATE.imgLab); markDone("lab"); save();
+    });
+  });
+
+  /* ================== 06/07. confianza y reflexión ================== */
+  var confValue = null;
+  function pickConf(v){
+    confValue = v; STATE.conf = v;
+    document.querySelectorAll(".conf-btn").forEach(function(b){ b.classList.toggle("picked", b.getAttribute("data-v") === v); });
+    markDone("conf"); saveSoon();
+  }
+  document.querySelectorAll(".conf-btn").forEach(function(btn){ btn.addEventListener("click", function(){ pickConf(btn.getAttribute("data-v")); }); });
+  var reflexion = document.getElementById("reflexion");
+  reflexion.addEventListener("input", function(){ if(reflexion.value.trim().length > 10) markDone("refl"); else unmark("refl"); saveSoon(); });
+  ["reto","confuso","matricula"].forEach(function(id){ document.getElementById(id).addEventListener("input", saveSoon); });
+  document.getElementById("usoIA").addEventListener("change", saveSoon);
+
+  /* ================== restaurar avance ================== */
+  /* ====== Simulador paso a paso: server streaming (sesión 14) ====== */
+  function initRpcSim(root, opts){
+    opts = opts || {};
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+    var CLI = [
+      'canal = grpc.insecure_channel("localhost:50051")',
+      'stub = saludo_pb2_grpc.SaludadorStub(canal)',
+      'peticion = saludo_pb2.SaludoRequest(nombre="Ana", matricula="20201234")',
+      'for respuesta in stub.SaludarVarios(peticion):',
+      '    print("Llego:", respuesta.mensaje)',
+      'print("Fin del stream")'
+    ];
+    var CLI_UNARIO = [
+      'canal = grpc.insecure_channel("localhost:50051")',
+      'stub = saludo_pb2_grpc.SaludadorStub(canal)',
+      'peticion = saludo_pb2.SaludoRequest(nombre="Ana", matricula="20201234")',
+      'respuesta = stub.SaludarVarios(peticion)',
+      'print("Llego:", respuesta.mensaje)',
+      'print("Fin del stream")'
+    ];
+    var SRV = [
+      'class SaludadorServicio(saludo_pb2_grpc.SaludadorServicer):',
+      '    def SaludarVarios(self, request, context):',
+      '        for i in range(1, 4):',
+      '            time.sleep(1)',
+      '            yield saludo_pb2.SaludoResponse(mensaje=f"Saludo {i} de 3 para {request.nombre}")',
+      '',
+      'servidor = grpc.server(futures.ThreadPoolExecutor(max_workers=4))',
+      'saludo_pb2_grpc.add_SaludadorServicer_to_server(SaludadorServicio(), servidor)',
+      'servidor.add_insecure_port("[::]:50051")',
+      'servidor.start()',
+      'print("Servidor gRPC escuchando en el puerto 50051...")',
+      'servidor.wait_for_termination()'
+    ];
+    var SRV_RET = SRV.slice(); SRV_RET[4] = '            return saludo_pb2.SaludoResponse(mensaje=f"Saludo {i} de 3 para {request.nombre}")';
+
+    var REQ_BYTES = '<b>Ida:</b> petición · 0A 03 41 6E 61 12 08 … (15 B)';
+    function cajas(n, fin){
+      var t = REQ_BYTES, parts = [];
+      for(var i = 1; i <= n; i++) parts.push("caja " + i + " (24 B)");
+      if(fin) parts.push("✔ fin (estado OK)");
+      if(parts.length) t += '<br><b>Regreso:</b> ' + parts.join(" · ");
+      if(n && !fin) t += '<br>Última: 0A 16 53 61 6C 75 64 6F 20 3' + n + ' …';
+      return t;
+    }
+    var BOX_READ = '<b>0A</b> = casilla 1 (mensaje) · <b>16</b> = 22 letras · <b>53 61 6C 75 64 6F</b> = "Saludo"';
+    function msg(i){ return 'Saludo ' + i + ' de 3 para Ana'; }
+    var START = { sl:12, sDone:[1,7,8,9,10,11], door:"🟢", sB:"⏳ esperando clientes", sv:{SaludadorServicio:"clase (receta guardada)", servidor:"4 hilos · puerto 50051 · ENCENDIDO"}, st:["$ python servidor.py","Servidor gRPC escuchando en el puerto 50051..."] };
+    function withStart(o){ var r = {}, k; for(k in START) r[k] = START[k]; for(k in o) r[k] = o[k]; return r; }
+    var ERR_RET = [
+      '<span class="er">grpc._channel._MultiThreadedRendezvous:</span>',
+      '<span class="er">  status = StatusCode.UNKNOWN</span>',
+      '<span class="er">  details = "Exception iterating responses: \'SaludoResponse\' object is not an iterator"</span>'
+    ];
+    var ERR_UNARIO = [
+      '<span class="er">AttributeError: \'_MultiThreadedRendezvous\' object has no attribute \'mensaje\'</span>'
+    ];
+    var ERR_NOCOMP = [
+      '<span class="er">AttributeError: \'SaludadorStub\' object has no attribute \'SaludarVarios\'</span>'
+    ];
+
+    var SCEN = {
+      normal: { name:"Streaming normal", cliCode:CLI, srvCode:SRV, steps:[
+        withStart({ act:"s", cB:"sin correr",
+          exp:{who:"inicio", txt:"El servidor ya está corriendo y esperando, igual que en la sesión 13 (líneas 7 a 12). Hoy su clase tiene un método nuevo: <code>SaludarVarios</code>, que regresa <b>varias cajas</b> en lugar de una. Presiona <b>Siguiente</b>.", ana:"El restaurante está abierto. Hoy hay un platillo nuevo: un menú de tres tiempos."} }),
+        { act:"c", cB:"▶ ejecutando", ct:"$ python cliente_varios.py", cl:1, cv:{canal:"camino a localhost:50051"},
+          exp:{who:"cli", txt:"Igual que en la sesión 13: se crea el canal hacia el servidor.", ana:"El cliente conoce el camino."} },
+        { act:"c", cl:2, stubLit:true, cv:{stub:"SaludadorStub (el mesero)"},
+          exp:{who:"cli", txt:"Se crea el stub. Como protoc leyó <code>returns (stream SaludoResponse)</code>, este mesero ya sabe que <code>SaludarVarios</code> trae <b>muchas</b> respuestas.", ana:"Aparece el mesero."} },
+        { inside:"ida", act:"c", cl:3, stubLit:false, cv:{peticion:'SaludoRequest(nombre="Ana", matricula="20201234")'},
+          exp:{who:"cli", txt:"Se arma la petición. Es <b>una sola</b> caja de ida, como siempre.", ana:"El cliente pide el menú de tres tiempos."} },
+        { inside:"ida", act:"n", cl:4, stubOn:0, bytes:REQ_BYTES, bread:"", pkt:{dir:"r", label:"🧾 0A 03 41 6E 61 12 08 …"}, cB:"⏳ esperando la 1.ª caja", cv:{"cajas recibidas":"0"},
+          exp:{who:"net", txt:"Empieza el <code>for</code>. <code>stub.SaludarVarios(peticion)</code> empaqueta y envía la petición (15 bytes), y el <code>for</code> se queda <b>esperando la primera caja</b>. <b>🔍 Toquen “Ver por dentro”</b> para ver cómo se convierte en bytes.", ana:"El mesero lleva la comanda; el cliente espera el primer tiempo."} },
+        { inside:"ida", act:"s", sl:2, stubOn:-1, stubOk:[0], skOn:1, skOk:[0], sB:"▶ hilo 1 atiende la llamada", sv:{request:'SaludoRequest(nombre="Ana", matricula="20201234")'},
+          exp:{who:"srv", txt:"El código generado desempaqueta la petición y llama a <code>SaludarVarios</code>. Ahora sí se ejecuta tu método.", ana:"La comanda llega al cocinero."} },
+        { act:"s", sl:3, skOn:-1, skOk:[0,1], sv:{i:"1"},
+          exp:{who:"srv", txt:"Empieza el ciclo del servidor: <code>i = 1</code>.", ana:"Primer tiempo."} },
+        { act:"s", sl:4,
+          exp:{who:"srv", txt:"<code>time.sleep(1)</code>: el servidor tarda 1 segundo, como si consultara una base de datos o hiciera un cálculo. Mientras tanto, el cliente espera.", ana:"El cocinero prepara el primer plato."} },
+        { act:"n", sl:5, skOn:2, inside:"vuelta", sB:"⏸ pausado en el yield (i = 1)", bytes:cajas(1), bread:BOX_READ, pkt:{dir:"l", label:"🍔 caja 1 · " + msg(1)},
+          exp:{who:"net", txt:"<code>yield</code> entrega <b>una</b> caja y <b>la función NO termina</b>: se pausa justo aquí y recuerda que va en <code>i = 1</code>. El código generado empaqueta la caja (24 bytes) y la envía. <b>🔍 “Ver por dentro”</b> muestra cómo.", ana:"Sale el primer plato; la cocina sigue trabajando."} },
+        { inside:"vuelta", act:"c", cl:4, skOn:-1, stubOn:1, stubOk:[0], cB:"▶ ejecutando", cv:{respuesta:'SaludoResponse(mensaje="' + msg(1) + '")', "cajas recibidas":"1"},
+          exp:{who:"cli", txt:"El stub desempaqueta la caja y el <code>for</code> la guarda en <code>respuesta</code>. Primera vuelta del ciclo.", ana:"El mesero entrega el primer plato."} },
+        { act:"c", cl:5, stubOn:-1, ct:"Llego: " + msg(1), sl:3, sB:"▶ continúa (i = 2)", sv:{i:"2"},
+          exp:{who:"cli", txt:"El cliente imprime la primera respuesta. <b>Al mismo tiempo</b>, el servidor regresó del <code>yield</code> y ya va en <code>i = 2</code>: los dos programas trabajan en paralelo.", ana:"El cliente come el primer plato mientras la cocina prepara el segundo."} },
+        { act:"s", cl:4, cB:"⏳ esperando la 2.ª caja", sl:4,
+          exp:{who:"srv", txt:"El <code>for</code> del cliente regresa a la línea 4 y espera la siguiente caja. El servidor vuelve a tardar 1 segundo.", ana:"El cliente espera el segundo tiempo."} },
+        { act:"n", sl:5, skOn:2, inside:"vuelta", sB:"⏸ pausado en el yield (i = 2)", bytes:cajas(2), bread:BOX_READ, pkt:{dir:"l", label:"🍔 caja 2 · " + msg(2)},
+          exp:{who:"net", txt:"Segundo <code>yield</code>: sale la segunda caja.", ana:"Sale el segundo plato."} },
+        { act:"c", cl:5, skOn:-1, cB:"▶ ejecutando", cv:{respuesta:'SaludoResponse(mensaje="' + msg(2) + '")', "cajas recibidas":"2"}, ct:"Llego: " + msg(2), sl:3, sB:"▶ continúa (i = 3)", sv:{i:"3"},
+          exp:{who:"cli", txt:"Segunda vuelta del <code>for</code>: <code>respuesta</code> ahora es la caja 2 y se imprime. El servidor ya va en <code>i = 3</code>.", ana:"Segundo plato servido."} },
+        { act:"n", cl:4, cB:"⏳ esperando la 3.ª caja", sl:5, sDone:[4], skOn:2, inside:"vuelta", sB:"⏸ pausado en el yield (i = 3)", bytes:cajas(3), bread:BOX_READ, pkt:{dir:"l", label:"🍔 caja 3 · " + msg(3)},
+          exp:{who:"net", txt:"Después de otro segundo, el tercer <code>yield</code> envía la última caja.", ana:"Sale el tercer plato."} },
+        { act:"c", cl:5, skOn:-1, cB:"▶ ejecutando", cv:{respuesta:'SaludoResponse(mensaje="' + msg(3) + '")', "cajas recibidas":"3"}, ct:"Llego: " + msg(3),
+          exp:{who:"cli", txt:"Tercera vuelta del <code>for</code>: se imprime la tercera respuesta.", ana:"Tercer plato servido."} },
+        { inside:"fin", act:"n", cl:4, cB:"⏳ ¿hay otra caja?", sl:3, skOn:2, skOk:[0,1,2], bytes:cajas(3, true), bread:"El fin del stream no es una caja: es un aviso de que ya no vienen más.", pkt:{dir:"l", label:"✔ FIN del stream"},
+          exp:{who:"net", txt:"En el servidor, el <code>range(1, 4)</code> se acabó y la función <b>termina</b>. Entonces el código generado manda un aviso: <b>“ya no hay más cajas”</b> (estado OK).", ana:"El mesero avisa: “ese fue el último tiempo”."} },
+        { inside:"fin", act:"c", cl:6, cB:"▶ ejecutando", stubOn:2, stubOk:[0,1], skOn:-1, sl:12, sB:"⏳ esperando al siguiente cliente", svDel:["request","i"], ct:"Fin del stream",
+          exp:{who:"cli", txt:"El stub recibe el aviso y el <code>for</code> <b>termina solo</b>, sin error. El programa sigue con la línea 6. El servidor regresa a esperar al siguiente cliente.", ana:"La comida terminó; la cocina queda lista para otro cliente."} },
+        { act:"c", cl:0, stubOn:-1, stubOk:[0,1,2], cB:"✔ terminó", end:true,
+          exp:{who:"fin", txt:"<b>Resumen:</b> <b>una</b> petición, <b>tres</b> respuestas, en <b>una sola</b> llamada. En el servidor, <code>yield</code> entrega una caja y sigue; en el cliente, el <code>for</code> recibe una caja en cada vuelta y se detiene cuando llega el aviso de fin.", ana:"return = un plato y se cierra la cocina; yield = un plato y la cocina sigue."} }
+      ]},
+      unario: { name:"Error: sin for", cliCode:CLI_UNARIO, srvCode:SRV, steps:[
+        withStart({ act:"c", cB:"sin correr", ct:"$ python cliente_varios.py",
+          exp:{who:"inicio", txt:"El cliente usa <code>SaludarVarios</code> como si fuera unario: guarda el resultado en una variable, como en la sesión 13, en lugar de recorrerlo con <code>for</code>.", ana:"El cliente espera un solo plato, pero pidió un menú de tres tiempos."} }),
+        { act:"c", cB:"▶ ejecutando", cl:3, cDone:[1,2], cv:{canal:"camino a localhost:50051", stub:"SaludadorStub (el mesero)", peticion:'SaludoRequest(nombre="Ana", matricula="20201234")'},
+          exp:{who:"cli", txt:"Las líneas 1 a 3 corren igual que siempre.", ana:"Todo normal hasta aquí."} },
+        { act:"c", cl:4, stubOn:0, bytes:REQ_BYTES, pkt:{dir:"r", label:"🧾 0A 03 41 6E 61 12 08 …"}, cv:{respuesta:"<_MultiThreadedRendezvous> (el flujo, NO una caja)"},
+          exp:{who:"cli", txt:"La petición sí sale hacia el servidor. Pero con streaming, <code>stub.SaludarVarios(peticion)</code> <b>no regresa una caja</b>: regresa de inmediato el <b>flujo</b> por donde van a ir llegando las cajas (un objeto que se recorre con <code>for</code>).", ana:"El mesero no trae un plato: trae la charola donde irán llegando."} },
+        { act:"c", cl:5, cErr:true, stubOn:-1, cB:"✖ terminó con error", ct:ERR_UNARIO, bad:true,
+          exp:{who:"cli", txt:"El flujo no tiene un campo <code>mensaje</code>: el campo está en <b>cada caja</b>. Error en la <b>línea 5</b>. <b>Solución:</b> <code>for respuesta in stub.SaludarVarios(peticion):</code> y, dentro del ciclo, <code>print(respuesta.mensaje)</code>.", ana:"Hay que sacar los platos de la charola uno por uno."} }
+      ]},
+      conReturn: { name:"Error: return", cliCode:CLI, srvCode:SRV_RET, steps:[
+        withStart({ act:"s", cB:"sin correr", sErrLine:5,
+          exp:{who:"inicio", txt:"En el servidor se escribió <code>return</code> en lugar de <code>yield</code> (línea 5, en rojo). El <code>.proto</code> sigue diciendo <code>stream</code>.", ana:"El cocinero cree que el pedido es de un solo plato."} }),
+        { act:"n", cB:"⏳ esperando la 1.ª caja", ct:"$ python cliente_varios.py", cl:4, cDone:[1,2,3], cv:{canal:"camino a localhost:50051", stub:"SaludadorStub (el mesero)", peticion:'SaludoRequest(nombre="Ana", matricula="20201234")'}, stubOn:0, bytes:REQ_BYTES, pkt:{dir:"r", label:"🧾 0A 03 41 6E 61 12 08 …"},
+          exp:{who:"net", txt:"El cliente corre igual que siempre y envía la petición.", ana:"La comanda llega a la cocina."} },
+        { act:"s", sl:4, sDone:[2,3], stubOn:-1, stubOk:[0], skOn:1, skOk:[0], sB:"▶ hilo 1 atiende la llamada", sv:{request:'SaludoRequest(nombre="Ana", matricula="20201234")', i:"1"},
+          exp:{who:"srv", txt:"El servidor entra al método, empieza el ciclo con <code>i = 1</code> y espera 1 segundo.", ana:"El cocinero prepara el primer plato."} },
+        { act:"s", sl:5, sErr:true, skOn:-1, skOk:[0,1], skBad:[2],
+          exp:{who:"srv", txt:"<code>return</code> entrega una caja y <b>termina la función</b> (el ciclo ya no sigue). Pero el código generado esperaba <b>una serie de cajas</b> que pudiera recorrer, porque el <code>.proto</code> dice <code>stream</code>. Una caja sola no se puede recorrer.", ana:"El cocinero sirve un plato y cierra la cocina."} },
+        { act:"n", pkt:{dir:"l", label:"✖ UNKNOWN", fail:true}, bytes:REQ_BYTES + "<br><b>Regreso:</b> solo un código de error", bread:"",
+          exp:{who:"net", txt:"En vez de cajas, regresa un código de error <code>UNKNOWN</code> con la explicación.", ana:"El mesero regresa sin platos."} },
+        { act:"c", sl:12, sErr:false, sB:"⏳ esperando clientes", svDel:["request","i"], cErr:true, cB:"✖ terminó con error", ct:ERR_RET, bad:true,
+          exp:{who:"cli", txt:"El error aparece en el cliente, en la <b>línea 4</b> (el <code>for</code>). <b>Solución:</b> en un método de streaming se usa <code>yield</code>, no <code>return</code>. Guarda y reinicia el servidor (Ctrl+C y volver a correrlo).", ana:"En un menú de tres tiempos se sirve plato por plato."} }
+      ]},
+      sinCompilar: { name:"Error: sin recompilar", cliCode:CLI, srvCode:SRV, steps:[
+        withStart({ act:"c", cB:"sin correr", ct:"$ python cliente_varios.py",
+          exp:{who:"inicio", txt:"Se agregó <code>rpc SaludarVarios</code> al <code>.proto</code>, pero <b>no se corrió</b> <code>bash compilar.sh</code>. El <code>saludo_pb2_grpc.py</code> sigue siendo el viejo.", ana:"El menú nuevo se escribió, pero al mesero nadie le avisó."} }),
+        { act:"c", cB:"▶ ejecutando", cl:3, cDone:[1,2], stubLit:true, cv:{canal:"camino a localhost:50051", stub:"SaludadorStub viejo (solo conoce SaludarUno)", peticion:'SaludoRequest(nombre="Ana", matricula="20201234")'},
+          exp:{who:"cli", txt:"Las líneas 1 a 3 corren sin error. Pero el stub se creó con el código viejo: solo tiene <code>SaludarUno</code>.", ana:"El mesero solo conoce el menú anterior."} },
+        { act:"c", cl:4, cErr:true, stubLit:false, stubBad:[0], cB:"✖ terminó con error", ct:ERR_NOCOMP, bad:true,
+          exp:{who:"cli", txt:"Truena en la <b>línea 4</b>, <b>antes de enviar nada</b>: el stub no tiene ese método. Por eso el servidor no se entera. <b>Solución:</b> <code>bash compilar.sh</code> y volver a correr <b>los dos</b> programas.", ana:"Hay que volver a pasar el menú por la fábrica."} }
+      ]}
+    };
+
+    /* ----- calcular el estado acumulado hasta el paso i ----- */
+    function blank(){ return {cl:0, cDone:[], cErr:false, sl:0, sDone:[], sErr:false, sErrLine:0, cB:"", sB:"", sOff:false,
+      cv:{}, sv:{}, ct:[], st:[], stubOn:-1, stubOk:[], stubLit:false, skOn:-1, skOk:[], skBad:[], stubBad:[], door:"🚪", bytes:"", bread:"", act:"", end:false}; }
+    function push(arr, n){ if(n && arr.indexOf(n) < 0) arr.push(n); }
+    function stateAt(sc, i){
+      var s = blank(), d, k, j;
+      for(j = 0; j <= i; j++){
+        d = sc.steps[j];
+        s.pkt = null; s.newC = []; s.newS = []; s.bad = false; s.exp = null; s.inside = null;
+        if("cl" in d){ push(s.cDone, s.cl); s.cl = d.cl; }
+        if("sl" in d){ push(s.sDone, s.sl); s.sl = d.sl; }
+        if(d.cDone) d.cDone.forEach(function(n){ push(s.cDone, n); });
+        if(d.sDone) d.sDone.forEach(function(n){ push(s.sDone, n); });
+        if(d.cv) for(k in d.cv){ s.cv[k] = d.cv[k]; s.newC.push(k); }
+        if(d.sv) for(k in d.sv){ s.sv[k] = d.sv[k]; s.newS.push(k); }
+        if(d.svDel) d.svDel.forEach(function(k){ delete s.sv[k]; });
+        if(d.ct) s.ct = s.ct.concat(d.ct);
+        if(d.st) s.st = s.st.concat(d.st);
+        ["cErr","sErr","sErrLine","cB","sB","sOff","stubOn","stubOk","stubLit","skOn","skOk","skBad","stubBad","door","bytes","bread","act","end","pkt","bad","exp","inside"].forEach(function(f){ if(f in d) s[f] = d[f]; });
+      }
+      return s;
+    }
+
+    /* ----- DOM ----- */
+    root.classList.add("rsim");
+    var scenBtns = Object.keys(SCEN).map(function(id){
+      return '<button type="button" data-scen="' + id + '" aria-pressed="false">' + esc(SCEN[id].name) + '</button>';
+    }).join("");
+    function codeHtml(lines, cls){
+      return lines.map(function(t, i){
+        return '<div class="rsim-ln" data-' + cls + '="' + (i + 1) + '"><span class="n">' + (t === "" ? "" : (i + 1)) + '</span><span class="t">' + esc(t) + '</span></div>';
+      }).join("");
+    }
+    root.innerHTML =
+      '<div class="rsim-top"><div class="rsim-scen" role="group" aria-label="Escenario">' + scenBtns + '</div>' +
+      '<div class="rsim-ctrl"><button type="button" class="sec" data-act="reset" title="Reiniciar">⟲</button>' +
+      '<button type="button" class="sec" data-act="prev">◀ Anterior</button><span class="rsim-count" aria-live="polite"></span>' +
+      '<button type="button" data-act="next">Siguiente ▶</button><button type="button" class="sec" data-act="auto" aria-pressed="false">▶ Auto</button></div></div>' +
+      '<div class="rsim-grid">' +
+        '<div class="rsim-panel" data-side="c"><div class="rsim-ph cli"><span>💻 cliente_varios.py · terminal 2</span><span class="rsim-badge" data-badge="c"></span></div><div class="rsim-code" data-code="c"></div></div>' +
+        '<div class="rsim-lane">' +
+          '<div class="rsim-stub" data-box="stub"><h5>🤵 Stub (el mesero) · lado cliente</h5><ol><li>Empaqueta la petición y la envía</li><li>Desempaqueta cada caja que llega y se la da al <code>for</code></li><li>Al llegar el aviso de fin, termina el <code>for</code></li></ol></div>' +
+          '<div class="rsim-wire"><span class="lbl">canal · localhost:50051</span><div class="rsim-pkt"></div><span class="rsim-door" aria-hidden="true"></span></div>' +
+          '<div class="rsim-inside-row"><button type="button" class="rsim-inside-btn" data-act="inside" title="Cómo se convierten las cajas en bytes">🔍 Ver por dentro</button></div>' +
+          '<div class="rsim-stub skel" data-box="sk"><h5>🧾 Código generado · lado servidor</h5><ol><li>Recibe la petición y la desempaqueta</li><li>Llama a <code>SaludarVarios</code></li><li>Empaqueta y envía cada <code>yield</code>; al final, avisa “fin”</li></ol></div>' +
+        '</div>' +
+        '<div class="rsim-panel" data-side="s"><div class="rsim-ph srv"><span>🖥️ servidor.py · terminal 1</span><span class="rsim-badge" data-badge="s"></span></div><div class="rsim-code" data-code="s"></div></div>' +
+      '</div>' +
+      '<div class="rsim-mem">' +
+        '<div class="rsim-box"><h6>Memoria del cliente</h6><div data-mem="c"></div><div class="rsim-term" data-tm="c"></div></div>' +
+        '<div class="rsim-box"><h6>Lo que viaja (bytes)</h6><div class="rsim-bytes" data-bytes></div><div class="rsim-bread" data-bread></div></div>' +
+        '<div class="rsim-box"><h6>Memoria del servidor</h6><div data-mem="s"></div><div class="rsim-term" data-tm="s"></div></div>' +
+      '</div>' +
+      '<div class="rsim-exp" aria-live="polite"><span class="who"></span><div class="txt"></div></div>';
+
+    function q(sel){ return root.querySelector(sel); }
+    var codeC = q('[data-code="c"]'), codeS = q('[data-code="s"]');
+    var pkt = q(".rsim-pkt"), door = q(".rsim-door"), count = q(".rsim-count");
+    var btnPrev = q('[data-act="prev"]'), btnNext = q('[data-act="next"]'), btnAuto = q('[data-act="auto"]');
+    var WHO = { cli:["cli","CLIENTE"], srv:["srv","SERVIDOR"], net:["net","STUB / RED"], inicio:["net","INICIO"], fin:["srv","FIN"] };
+
+    var scen = "normal", idx = 0, timer = null, completed = {};
+
+    function setScen(id){
+      scen = id; idx = 0; stopAuto();
+      codeS.innerHTML = codeHtml(SCEN[id].srvCode, "l");
+      codeC.innerHTML = codeHtml(SCEN[id].cliCode || CLI, "l");
+      Array.prototype.forEach.call(root.querySelectorAll("[data-scen]"), function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-scen") === id ? "true" : "false"); });
+      render(false);
+    }
+    function paintCode(box, cur, done, err, errLine){
+      Array.prototype.forEach.call(box.children, function(el, i){
+        var n = i + 1;
+        el.className = "rsim-ln" + (n === cur ? (err ? " err" : " cur") : (n === errLine ? " err" : (done.indexOf(n) >= 0 ? " done" : "")));
+      });
+      var c = box.querySelector(".cur, .err");
+      if(c && box.scrollHeight > box.clientHeight){ box.scrollTop = Math.max(0, c.offsetTop - box.clientHeight / 2); }
+    }
+    function memHtml(obj, fresh){
+      var ks = Object.keys(obj);
+      if(!ks.length) return '<div class="rsim-var" style="color:#8193A8;">(vacía)</div>';
+      return ks.map(function(k){ return '<div class="rsim-var' + (fresh.indexOf(k) >= 0 ? " new" : "") + '"><b>' + esc(k) + '</b> = ' + esc(obj[k]) + '</div>'; }).join("");
+    }
+    function termHtml(lines){ return lines.length ? lines.map(function(l){ return l.indexOf("<span") === 0 ? l : esc(l); }).join("<br>") : '<span style="color:#5F7896;">(terminal vacía)</span>'; }
+    function olPaint(box, on, ok, lit, bad){
+      bad = bad || [];
+      box.classList.toggle("on", on >= 0 || !!lit);
+      Array.prototype.forEach.call(box.querySelectorAll("li"), function(li, i){
+        li.className = bad.indexOf(i) >= 0 ? "bad" : (i === on ? "on" : (ok.indexOf(i) >= 0 ? "ok" : ""));
+      });
+    }
+
+    function render(animate){
+      var sc = SCEN[scen], s = stateAt(sc, idx), n = sc.steps.length;
+      paintCode(codeC, s.cl, s.cDone, s.cErr, 0);
+      paintCode(codeS, s.sl, s.sDone, s.sErr, s.sErrLine);
+      q('[data-badge="c"]').textContent = s.cB || "—";
+      q('[data-badge="s"]').textContent = s.sB || "—";
+      var pc = q('[data-side="c"]'), ps = q('[data-side="s"]');
+      pc.classList.toggle("active", s.act === "c"); ps.classList.toggle("active", s.act === "s");
+      ps.classList.toggle("off", !!s.sOff);
+      q('[data-mem="c"]').innerHTML = memHtml(s.cv, s.newC);
+      q('[data-mem="s"]').innerHTML = memHtml(s.sv, s.newS);
+      q('[data-tm="c"]').innerHTML = termHtml(s.ct);
+      q('[data-tm="s"]').innerHTML = termHtml(s.st);
+      Array.prototype.forEach.call(root.querySelectorAll(".rsim-term"), function(t){ t.scrollTop = t.scrollHeight; });
+      q("[data-bytes]").innerHTML = s.bytes || '<span style="color:#8193A8;">(todavía nada)</span>';
+      q("[data-bread]").innerHTML = s.bread || "";
+      olPaint(q('[data-box="stub"]'), s.stubOn, s.stubOk, s.stubLit, s.stubBad);
+      olPaint(q('[data-box="sk"]'), s.skOn, s.skOk, false, s.skBad);
+      door.textContent = s.door;
+      var ib = q('[data-act="inside"]'); ib.classList.toggle("pulse", !!s.inside); ib.setAttribute("data-tab", s.inside || "ida");
+      var exp = q(".rsim-exp"), w = WHO[s.exp.who] || WHO.net;
+      exp.classList.toggle("bad", !!s.bad);
+      exp.querySelector(".who").className = "who " + w[0];
+      exp.querySelector(".who").textContent = w[1];
+      exp.querySelector(".txt").innerHTML = s.exp.txt + (s.exp.ana ? '<span class="ana">🍽️ ' + s.exp.ana + '</span>' : "");
+      count.textContent = "Paso " + (idx + 1) + " de " + n;
+      btnPrev.disabled = idx === 0; btnNext.disabled = idx === n - 1;
+      // paquete
+      pkt.classList.remove("show", "fail");
+      pkt.style.transition = "none";
+      if(s.pkt){
+        pkt.textContent = s.pkt.label;
+        pkt.style.background = (!s.pkt.fail && s.pkt.dir === "l") ? "#1E8E5A" : "";
+        pkt.style.color = (!s.pkt.fail && s.pkt.dir === "l") ? "#fff" : "";
+        pkt.classList.add("show");
+        var wire = pkt.parentNode, maxL = Math.max(4, wire.clientWidth - pkt.offsetWidth - 28);
+        var endL = s.pkt.dir === "r" ? (s.pkt.fail ? Math.round(maxL * 0.82) : maxL) : 4;
+        var startL = s.pkt.dir === "r" ? 4 : maxL;
+        if(animate && !reduce){
+          pkt.style.left = startL + "px";
+          void pkt.offsetWidth;
+          pkt.style.transition = "";
+          requestAnimationFrame(function(){ pkt.style.left = endL + "px"; });
+          if(s.pkt.fail) setTimeout(function(){ pkt.classList.add("fail"); }, 900);
+        } else { pkt.style.left = endL + "px"; if(s.pkt.fail) pkt.classList.add("fail"); }
+      }
+      if(idx === n - 1 && !completed[scen]){
+        completed[scen] = true;
+        if(opts.onComplete) try{ opts.onComplete(scen, Object.keys(completed)); }catch(e){}
+      }
+    }
+    function next(){ var n = SCEN[scen].steps.length; if(idx < n - 1){ idx++; render(true); return true; } stopAuto(); return false; }
+    function prev(){ if(idx > 0){ idx--; render(false); return true; } return false; }
+    function stopAuto(){ if(timer){ clearInterval(timer); timer = null; } btnAuto.setAttribute("aria-pressed", "false"); btnAuto.textContent = "▶ Auto"; }
+    function toggleAuto(){
+      if(timer){ stopAuto(); return; }
+      if(idx >= SCEN[scen].steps.length - 1){ idx = 0; render(false); }
+      btnAuto.setAttribute("aria-pressed", "true"); btnAuto.textContent = "⏸ Pausa";
+      timer = setInterval(function(){ if(!next()) stopAuto(); }, 3200);
+    }
+    root.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b || !root.contains(b)) return;
+      var a = b.getAttribute("data-act"), sId = b.getAttribute("data-scen");
+      if(sId){ setScen(sId); return; }
+      if(a === "next"){ stopAuto(); next(); }
+      else if(a === "prev"){ stopAuto(); prev(); }
+      else if(a === "reset"){ stopAuto(); idx = 0; render(false); }
+      else if(a === "auto"){ toggleAuto(); }
+      else if(a === "inside"){ stopAuto(); if(typeof RpcInside !== "undefined") RpcInside.open(b.getAttribute("data-tab") || "ida"); }
+    });
+    setScen("normal");
+    if(opts.completed) opts.completed.forEach(function(id){ completed[id] = true; });
+    return { next:function(){ stopAuto(); return next(); }, prev:function(){ stopAuto(); return prev(); }, completed:function(){ return Object.keys(completed); },
+      markCompleted:function(list){ (list || []).forEach(function(id){ if(SCEN[id]) completed[id] = true; }); } };
+  }
+
+  /* ====== "Por dentro": qué hacen el stub y el código generado con las cajas ====== */
+  var RpcInside = (function(){
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function hx(n){ return n.toString(16).toUpperCase().padStart(2, "0"); }
+    function utf8(s){ return Array.prototype.slice.call(new TextEncoder().encode(s)); }
+    function varint(n){ var o = []; while(n > 127){ o.push((n & 127) | 128); n = n >>> 7; } o.push(n); return o; }
+    function field(num, s){ var d = utf8(s); return { tag:[(num << 3) | 2], len:varint(d.length), dat:d, num:num, s:s }; }
+    function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    function cells(arr, cls, start, extra){
+      return arr.map(function(b, i){ return '<span class="rin-b ' + cls + (extra || "") + '" style="--i:' + ((start || 0) + i) + '" data-k="' + ((start || 0) + i) + '">' + hx(b) + '</span>'; }).join("");
+    }
+    function fieldGroups(f, start, name){
+      var n = start;
+      var h = '<div class="rin-grp"><div class="rin-cells">' + cells(f.tag, "tag", n) + '</div><div class="rin-lbl"><b>etiqueta</b><br>casilla ' + f.num + ' · texto</div></div>'; n += f.tag.length;
+      h += '<div class="rin-grp"><div class="rin-cells">' + cells(f.len, "len", n) + '</div><div class="rin-lbl"><b>largo</b><br>' + f.dat.length + ' bytes</div></div>'; n += f.len.length;
+      h += '<div class="rin-grp"><div class="rin-cells">' + cells(f.dat, "dat", n) + '</div><div class="rin-lbl"><b>valor</b><br>' + esc(name) + ' = "' + esc(f.s) + '"</div></div>';
+      return h;
+    }
+    function boxReq(nombre, matricula, filled){
+      return '<div class="rin-box req"><div class="lid">SaludoRequest</div>' +
+        '<div class="rin-slot' + (filled ? "" : "") + '" data-slot="nombre"><span class="k">casilla 1 · nombre · string</span><span class="v">' + (nombre === null ? "&nbsp;" : '"' + esc(nombre) + '"') + '</span></div>' +
+        '<div class="rin-slot" data-slot="matricula"><span class="k">casilla 2 · matricula · string</span><span class="v">' + (matricula === null ? "&nbsp;" : '"' + esc(matricula) + '"') + '</span></div></div>';
+    }
+    function boxRes(msg, title){
+      return '<div class="rin-box"><div class="lid">' + (title || "SaludoResponse") + '</div>' +
+        '<div class="rin-slot" data-slot="mensaje"><span class="k">casilla 1 · mensaje · string</span><span class="v">' + (msg === null ? "&nbsp;" : '"' + esc(msg) + '"') + '</span></div></div>';
+    }
+    var F1 = field(1, "Ana"), F2 = field(2, "20201234");
+    var REQ = F1.tag.concat(F1.len, F1.dat, F2.tag, F2.len, F2.dat);          /* 15 bytes */
+    var MSG = "Saludo 1 de 3 para Ana", FR = field(1, MSG);
+    var RES = FR.tag.concat(FR.len, FR.dat);                                    /* 24 bytes */
+    function prefix(n){ return [0, (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]; }
+    var SRC_PB = 'Fuentes: Google (s.f.-c), <i>Encoding</i>, protobuf.dev · gRPC Authors (s.f.-g), <i>gRPC over HTTP2</i>, github.com/grpc/grpc.';
+
+    /* lector byte por byte */
+    function reader(vis, states){
+      var rd = vis.querySelector(".rin-read"), btn = vis.querySelector("[data-rd]"), k = -1;
+      function show(){
+        Array.prototype.forEach.call(vis.querySelectorAll(".rin-b[data-k]"), function(c){ c.classList.remove("hit"); });
+        if(k < 0){ rd.innerHTML = "Presiona <b>Leer el siguiente byte</b>: así lee el código generado, de izquierda a derecha."; return; }
+        var st = states[k];
+        (st.hit || []).forEach(function(i){ var c = vis.querySelector('.rin-b[data-k="' + i + '"]'); if(c) c.classList.add("hit"); });
+        rd.innerHTML = st.msg;
+        if(st.fill){ var sl = vis.querySelector('[data-slot="' + st.fill[0] + '"]'); if(sl){ sl.querySelector(".v").textContent = '"' + st.fill[1] + '"'; sl.classList.remove("fill"); void sl.offsetWidth; sl.classList.add("fill"); } }
+        btn.disabled = k >= states.length - 1;
+      }
+      btn.addEventListener("click", function(){ if(k < states.length - 1){ k++; show(); } });
+      show();
+    }
+
+    var TABS = {
+      ida: { name:"① Ida: la petición", steps:[
+        { t:"Antes de viajar: un objeto en la memoria", html:function(){
+            return '<pre class="rin-code">peticion = saludo_pb2.<b>SaludoRequest</b>(nombre="Ana", matricula="20201234")</pre>' +
+              '<div style="font-size:30px;">➜</div>' + boxReq("Ana", "20201234") +
+              '<pre class="rin-code" style="font-size:12.5px;">// saludo.proto\nmessage SaludoRequest {\n  string nombre = <b>1</b>;\n  string matricula = <b>2</b>;\n}</pre>';
+          }, txt:"<code>SaludoRequest(...)</code> <b>solo crea la caja y la llena</b>, como cualquier objeto de Python. Todavía <b>no hay bytes ni red</b>. Cada hueco tiene el número de casilla que se escribió en el <code>.proto</code>: eso es lo que va a viajar, no el nombre del campo." },
+        { t:"Cada letra se convierte en un número", html:function(){
+            var rows = function(s){ return utf8(s).map(function(b){ return '<tr><td class="c">' + esc(String.fromCharCode(b)) + '</td><td>' + b + '</td><td class="h">' + hx(b) + '</td></tr>'; }).join(""); };
+            return '<table class="rin-tbl"><tr><th>letra</th><th>número</th><th>en hex</th></tr>' + rows("Ana") + '</table>' +
+              '<table class="rin-tbl"><tr><th>carácter</th><th>número</th><th>en hex</th></tr>' + rows("2020") + '<tr><td colspan="3">… y así hasta el 4</td></tr></table>';
+          }, txt:"La red solo transporta números del 0 al 255 (bytes). Cada carácter tiene su código: <b>A = 65</b>, <b>n = 110</b>, <b>a = 97</b>. Ojo: el <b>carácter</b> “2” no es el número 2: su código es <b>50</b>. Se escriben en hexadecimal (base 16): 65 = <code>41</code>, 50 = <code>32</code>.",
+          note:"Es lo mismo que hacía <code>texto.encode()</code> en sus sockets de la Unidad I (UTF-8). Una letra con acento ocupa 2 bytes: “é” = <code>C3 A9</code>." },
+        { t:"Cada dato lleva una etiqueta y su largo", html:function(){
+            return '<div class="rin-formula">' +
+              '<div class="rin-fcard">nombre es la <b>casilla 1</b> y es texto (tipo 2)<br>(1 × 8) + 2 = 10 = <span class="big">0A</span><br>“Ana” mide 3 → <span class="big" style="color:#5C3D00;">03</span></div>' +
+              '<div class="rin-fcard">matricula es la <b>casilla 2</b> y es texto (tipo 2)<br>(2 × 8) + 2 = 18 = <span class="big">12</span><br>“20201234” mide 8 → <span class="big" style="color:#5C3D00;">08</span></div></div>';
+          }, txt:"Antes de cada valor van dos bytes: la <b>etiqueta</b> (qué casilla es y de qué tipo) y el <b>largo</b> (cuántos bytes leer). Así el que recibe sabe dónde empieza y dónde termina cada dato, <b>sin separadores</b>. Es la fórmula de la sesión 12.",
+          note:"El “× 8” es correr el número de casilla 3 bits a la izquierda; el “+ 2” dice que viene un texto con largo." },
+        { t:"Se arma la comanda: SerializeToString()", html:function(){
+            return '<div class="rin-bytes rin-anim">' + fieldGroups(F1, 0, "nombre") + fieldGroups(F2, F1.tag.length + F1.len.length + F1.dat.length, "matricula") + '</div>' +
+              '<div class="rin-try"><label>Pruébalo:</label><input type="text" data-try="n" value="Ana" aria-label="nombre" maxlength="40"><input type="text" data-try="m" value="20201234" aria-label="matrícula" maxlength="20"></div><div class="rin-bytes" data-try-out></div>';
+          }, after:function(vis){
+            var n = vis.querySelector('[data-try="n"]'), m = vis.querySelector('[data-try="m"]'), out = vis.querySelector("[data-try-out]");
+            function upd(){
+              var a = field(1, n.value), b = field(2, m.value), tot = a.tag.length + a.len.length + a.dat.length + b.tag.length + b.len.length + b.dat.length;
+              out.innerHTML = '<div class="rin-grp"><div class="rin-cells">' + cells(a.tag, "tag small", 0) + cells(a.len, "len small", 0) + cells(a.dat, "dat small", 0) + cells(b.tag, "tag small", 0) + cells(b.len, "len small", 0) + cells(b.dat, "dat small", 0) + '</div><div class="rin-lbl"><b>' + tot + ' bytes</b> con tus datos</div></div>';
+            }
+            n.addEventListener("input", upd); m.addEventListener("input", upd); upd();
+          }, txt:"Etiqueta + largo + valor, campo tras campo: <b>15 bytes</b>. Eso es lo que hace <code>SerializeToString()</code> dentro del stub. La palabra “nombre” <b>nunca viaja</b>: viaja el <code>0A</code>.",
+          note:"En Python: <code>peticion.SerializeToString()</code> → <code>b'\\n\\x03Ana\\x12\\x0820201234'</code> (Python muestra <code>0A</code> como <code>\\n</code>). Escribe tu nombre arriba para ver tus bytes." },
+        { t:"gRPC lo mete en un sobre", html:function(){
+            return '<div class="rin-envl"><div class="h">:path <b>/saludo.Saludador/SaludarVarios</b><br>content-type: application/grpc</div>' +
+              '<div class="bd rin-anim"><div class="rin-grp"><div class="rin-cells">' + cells([0], "env", 0) + '</div><div class="rin-lbl"><b>00</b><br>sin comprimir</div></div>' +
+              '<div class="rin-grp"><div class="rin-cells">' + cells([0, 0, 0, 15], "env", 1) + '</div><div class="rin-lbl"><b>00 00 00 0F</b><br>la comanda mide 15 bytes</div></div>' +
+              '<div class="rin-grp"><div class="rin-cells">' + cells(REQ, "dat small", 5) + '</div><div class="rin-lbl"><b>la comanda</b> (15 bytes)</div></div></div></div>';
+          }, txt:"El stub no manda la comanda sola: la mete en un <b>sobre</b>. El <b>rótulo</b> dice a qué servicio y método va (<code>/saludo.Saludador/SaludarVarios</code>): con eso el servidor sabe qué función de tu clase llamar. Antes de la comanda van <b>5 bytes</b>: uno que dice si viene comprimida y cuatro con su tamaño.",
+          note:"El rótulo es una cabecera de HTTP/2, el protocolo que gRPC usa por encima de la conexión." },
+        { t:"Viaja por el canal", html:function(){
+            var line = prefix(15).concat(REQ);
+            return '<div class="rin-wire"><span class="end l">💻 cliente</span><span class="rin-pk">✉️ sobre · 20 bytes</span><span class="end r">servidor 🖥️</span></div>' +
+              '<div class="rin-grp" style="width:100%;"><div class="rin-cells">' + cells(prefix(15), "env small", 0) + cells(REQ, "dat small", 5) + '</div><div class="rin-lbl">Bytes <b>reales</b>, capturados con un programa espía entre el cliente y el servidor</div></div>';
+          }, txt:"Por debajo es una <b>conexión TCP</b>, la misma de sus sockets de la Unidad I. Lo que viaja son estos 20 bytes (más el rótulo). Nadie los escribió a mano: lo hizo el stub cuando el <code>for</code> llamó a <code>stub.SaludarVarios(peticion)</code>." },
+        { t:"El servidor lo desarma: ParseFromString()", html:function(){
+            return '<div class="rin-grp"><div class="rin-cells">' + cells(REQ, "dat", 0) + '</div></div>' + boxReq(null, null) +
+              '<div class="rin-read"></div><div style="width:100%; text-align:center;"><button type="button" data-rd style="border:none; background:#C0392B; color:#fff; border-radius:8px; padding:8px 16px; font-weight:700; cursor:pointer;">▶ Leer el siguiente byte</button></div>';
+          }, after:function(vis){
+            reader(vis, [
+              { hit:[0], msg:"<b>0A</b> → etiqueta: casilla 1, texto. En el .proto, la casilla 1 es <b>nombre</b>." },
+              { hit:[1], msg:"<b>03</b> → el texto mide 3 bytes: leo los siguientes 3." },
+              { hit:[2,3,4], msg:"<b>41 6E 61</b> → A, n, a → <code>request.nombre = \"Ana\"</code>", fill:["nombre","Ana"] },
+              { hit:[5], msg:"<b>12</b> → etiqueta: casilla 2, texto → <b>matricula</b>." },
+              { hit:[6], msg:"<b>08</b> → mide 8 bytes." },
+              { hit:[7,8,9,10,11,12,13,14], msg:"<b>32 30 32 30 31 32 33 34</b> → “20201234” → <code>request.matricula</code>", fill:["matricula","20201234"] },
+              { hit:[], msg:"Se acabaron los 15 bytes. La caja quedó <b>igual que en el cliente</b>, y el código generado la entrega como <code>request</code> a <code>SaludarVarios(self, request, context)</code>." }
+            ]);
+          }, txt:"gRPC lee el rótulo para saber qué método llamar, y el código que generó protoc (el <i>skeleton</i> de la sesión 11) reconstruye la caja <b>byte por byte</b>." }
+      ]},
+      vuelta: { name:"② Regreso: cada yield", steps:[
+        { t:"yield entrega un objeto", html:function(){
+            return '<pre class="rin-code"><b>yield</b> saludo_pb2.<b>SaludoResponse</b>(mensaje=f"Saludo {i} de 3 para {request.nombre}")</pre><div style="font-size:30px;">➜</div>' + boxRes(MSG);
+          }, txt:"Igual que la petición: <code>SaludoResponse(...)</code> crea una caja con un hueco, <code>mensaje</code> (casilla 1). <code>yield</code> se la entrega al código generado y tu función se pausa." },
+        { t:"La caja se convierte en bytes", html:function(){
+            return '<div class="rin-bytes rin-anim">' + fieldGroups(FR, 0, "mensaje") + '</div>';
+          }, txt:"<code>0A</code> = casilla 1, texto · <code>16</code> = 22 caracteres (16 en hexadecimal) · después, cada letra: <code>53</code> = S, <code>61</code> = a, <code>6C</code> = l… En total <b>24 bytes</b>. Es la misma receta de la ida." },
+        { t:"Un sobre por cada yield", html:function(){
+            var env = function(i){ var f = field(1, "Saludo " + i + " de 3 para Ana"); return '<div class="rin-envl"><div class="h">caja ' + i + ' · llegó al segundo ' + i + '</div><div class="bd"><div class="rin-cells">' + cells(prefix(24), "env small", 0) + cells(f.tag, "tag small", 0) + cells(f.len, "len small", 0) + cells(f.dat.slice(0, 9), "dat small", 0) + '<span class="rin-b dat small">…</span></div></div></div>'; };
+            return '<div class="rin-wire"><span class="end l">💻 cliente</span><span class="rin-pk back">✉️ caja 1</span><span class="rin-pk back d1">✉️ caja 2</span><span class="rin-pk back d2">✉️ caja 3</span><span class="end r">servidor 🖥️</span></div>' + env(1) + env(2) + env(3);
+          }, txt:"Cada <code>yield</code> sale <b>en su propio sobre</b>, por la <b>misma</b> llamada, en cuanto se produce. <code>00 00 00 00 18</code> = sin comprimir, 24 bytes (18 en hexadecimal). Los tres sobres son bytes reales capturados, uno por segundo.",
+          note:"Por eso el cliente puede imprimir la caja 1 mientras el servidor todavía prepara la 2." },
+        { t:"El stub del cliente los desarma, uno por uno", html:function(){
+            return '<div class="rin-grp"><div class="rin-cells">' + cells(prefix(24), "env", 0) + cells(RES, "dat small", 5) + '</div></div>' + boxRes(null, "respuesta") +
+              '<div class="rin-read"></div><div style="width:100%; text-align:center;"><button type="button" data-rd style="border:none; background:#C0392B; color:#fff; border-radius:8px; padding:8px 16px; font-weight:700; cursor:pointer;">▶ Leer el siguiente byte</button></div>';
+          }, after:function(vis){
+            var all = []; for(var i = 7; i < 29; i++) all.push(i);
+            reader(vis, [
+              { hit:[0,1,2,3,4], msg:"<b>00 00 00 00 18</b> → el sobre trae una caja de 24 bytes." },
+              { hit:[5], msg:"<b>0A</b> → casilla 1, texto → <b>mensaje</b>." },
+              { hit:[6], msg:"<b>16</b> → mide 22 bytes." },
+              { hit:all, msg:"53 61 6C 75 64 6F … → “Saludo 1 de 3 para Ana” → <code>respuesta.mensaje</code>", fill:["mensaje", MSG] },
+              { hit:[], msg:"Caja lista. El stub se la da al <code>for</code> como <code>respuesta</code>, se ejecuta el <code>print</code>, y el <code>for</code> espera el siguiente sobre." }
+            ]);
+          }, txt:"El stub hace <code>ParseFromString()</code> con cada sobre que llega. Por eso, dentro del <code>for</code>, <code>respuesta</code> ya es una caja normal y pueden escribir <code>respuesta.mensaje</code>." }
+      ]},
+      fin: { name:"③ El aviso de fin", steps:[
+        { t:"Cuando el método termina, sale un sobre sin caja", html:function(){
+            return '<div class="rin-envl"><div class="h">trailers (lo último que manda el servidor)</div><div class="bd" style="font-family:\'IBM Plex Mono\',monospace; font-size:16px;"><b>grpc-status: 0</b></div></div>' +
+              '<div class="rin-mini"><b>0</b> = OK → el <code>for</code> termina sin error<br><b>12</b> = UNIMPLEMENTED · <b>2</b> = UNKNOWN<br><b>13</b> = INTERNAL · <b>14</b> = UNAVAILABLE</div>';
+          }, txt:"Cuando se acaba el ciclo de tu método, el código generado manda un último aviso, <b>sin caja</b>: <code>grpc-status: 0</code>. El stub lo recibe y el <code>for</code> termina solo. Si el número es otro, el stub lanza el error que ya conocen (por ejemplo, <code>UNKNOWN</code> = 2 cuando usan <code>return</code>).",
+          note:"Este aviso también lo capturamos en la conexión real. Y es el mismo mecanismo con el que llegaron los errores de la sesión 13." },
+        { t:"La llamada completa, de principio a fin", html:function(){
+            return '<div class="rin-seq">' +
+              '<div class="row"><span>💻</span><span class="pill go">rótulo: /saludo.Saludador/SaludarVarios</span></div>' +
+              '<div class="row"><span>💻</span><span class="pill go">✉️ petición · 00 00 00 00 0F + 15 bytes</span></div>' +
+              '<div class="row r"><span class="pill bk">✉️ caja 1 · 00 00 00 00 18 + 24 bytes</span><span>🖥️</span></div>' +
+              '<div class="row r"><span class="pill bk">✉️ caja 2 · 00 00 00 00 18 + 24 bytes</span><span>🖥️</span></div>' +
+              '<div class="row r"><span class="pill bk">✉️ caja 3 · 00 00 00 00 18 + 24 bytes</span><span>🖥️</span></div>' +
+              '<div class="row r"><span class="pill st">grpc-status: 0 · fin</span><span>🖥️</span></div></div>';
+          }, txt:"<b>Una</b> llamada, <b>una</b> conexión: un sobre de ida, tres de regreso y el aviso de fin. Todo esto lo hacen el stub y el código generado. En su código, ustedes solo escribieron <code>yield</code> y <code>for</code>." }
+      ]}
+    };
+
+    var back = null, tab = "ida", idx = 0;
+    function build(){
+      back = document.createElement("div"); back.className = "rin-back"; back.setAttribute("role", "dialog"); back.setAttribute("aria-modal", "true"); back.setAttribute("aria-label", "Por dentro de la llamada");
+      back.innerHTML = '<div class="rin-card"><div class="rin-head"><h3>🔍 Por dentro: lo que el stub hace sin que lo vean</h3><div class="rin-tabs" role="tablist">' +
+        Object.keys(TABS).map(function(k){ return '<button type="button" role="tab" data-tab="' + k + '">' + TABS[k].name + '</button>'; }).join("") +
+        '</div><button type="button" class="rin-x" aria-label="Cerrar">✕</button></div>' +
+        '<div class="rin-body"><p class="rin-step-t"></p><div class="rin-vis"></div><p class="rin-txt"></p><p class="rin-note"></p><p class="rin-src">' + SRC_PB + '</p></div>' +
+        '<div class="rin-foot"><button type="button" class="sec" data-nav="-1">◀ Anterior</button><div class="rin-dots"></div><button type="button" data-nav="1">Siguiente ▶</button></div></div>';
+      document.body.appendChild(back);
+      back.addEventListener("click", function(e){
+        if(e.target === back || e.target.closest(".rin-x")){ close(); return; }
+        var t = e.target.closest("[data-tab]"); if(t){ tab = t.getAttribute("data-tab"); idx = 0; render(); return; }
+        var n = e.target.closest("[data-nav]"); if(n){ go(Number(n.getAttribute("data-nav"))); }
+      });
+      window.addEventListener("keydown", function(e){
+        if(!back.classList.contains("open")) return;
+        if(e.target && e.target.tagName === "INPUT") { if(e.key === "Escape"){ close(); } e.stopImmediatePropagation(); return; }
+        if(e.key === "Escape"){ close(); }
+        else if(e.key === "ArrowRight" || e.key === "PageDown" || e.key === " "){ e.preventDefault(); go(1); }
+        else if(e.key === "ArrowLeft" || e.key === "PageUp"){ e.preventDefault(); go(-1); }
+        e.stopImmediatePropagation();
+      }, true);
+    }
+    var lastFocus = null;
+    function go(d){
+      var keys = Object.keys(TABS), steps = TABS[tab].steps;
+      if(idx + d >= 0 && idx + d < steps.length){ idx += d; }
+      else if(d > 0 && keys.indexOf(tab) < keys.length - 1){ tab = keys[keys.indexOf(tab) + 1]; idx = 0; }
+      else if(d < 0 && keys.indexOf(tab) > 0){ tab = keys[keys.indexOf(tab) - 1]; idx = TABS[tab].steps.length - 1; }
+      render();
+    }
+    function render(){
+      var steps = TABS[tab].steps, st = steps[idx], keys = Object.keys(TABS);
+      Array.prototype.forEach.call(back.querySelectorAll("[data-tab]"), function(b){ b.setAttribute("aria-selected", b.getAttribute("data-tab") === tab ? "true" : "false"); });
+      back.querySelector(".rin-step-t").innerHTML = '<span>' + (idx + 1) + ' de ' + steps.length + '</span>' + st.t;
+      var vis = back.querySelector(".rin-vis"); vis.innerHTML = st.html();
+      back.querySelector(".rin-txt").innerHTML = st.txt;
+      var note = back.querySelector(".rin-note"); note.innerHTML = st.note || ""; note.style.display = st.note ? "block" : "none";
+      if(st.after) st.after(vis);
+      back.querySelector(".rin-dots").innerHTML = steps.map(function(_, i){ return '<i class="' + (i === idx ? "on" : "") + '"></i>'; }).join("");
+      var first = keys.indexOf(tab) === 0 && idx === 0, last = keys.indexOf(tab) === keys.length - 1 && idx === steps.length - 1;
+      back.querySelector('[data-nav="-1"]').disabled = first;
+      var nx = back.querySelector('[data-nav="1"]'); nx.disabled = last;
+      nx.textContent = (idx === steps.length - 1 && !last) ? "Siguiente parte ▶" : "Siguiente ▶";
+      back.querySelector(".rin-body").scrollTop = 0;
+    }
+    function open(t){
+      if(!back) build();
+      lastFocus = document.activeElement;
+      tab = TABS[t] ? t : "ida"; idx = 0; render();
+      back.classList.add("open");
+      back.querySelector(".rin-x").focus();
+    }
+    function close(){ back.classList.remove("open"); if(lastFocus && lastFocus.focus) lastFocus.focus(); }
+    return { open:open, close:close, isOpen:function(){ return !!back && back.classList.contains("open"); } };
+  })();
+
+  var SIM_NAMES = { normal:"streaming normal", unario:"sin for", conReturn:"return en vez de yield", sinCompilar:"sin recompilar" };
+  function showSimDone(list){
+    document.getElementById("simDone").innerHTML = "Escenarios recorridos completos: <b>" + list.length + " de 4</b>" + (list.length ? " (" + list.map(function(k){ return SIM_NAMES[k] || k; }).join(", ") + ")." : ".");
+  }
+  var rpcSim = initRpcSim(document.getElementById("rpcSim"), { onComplete:function(id, list){ STATE.sim = list; showSimDone(list); saveSoon(); } });
+
+  (function restore(){
+    var raw = null;
+    try{ raw = localStorage.getItem(STORAGE_KEY); } catch(e){ storageOk = false; }
+    if(!raw) return;
+    var st; try{ st = JSON.parse(raw); } catch(e){ return; }
+    if(!st || st.v !== 1) return;
+    restoring = true;
+    try{
+      Object.keys(st.ana || {}).forEach(function(id){ if(anaSelects[id]){ anaSelects[id].value = st.ana[id]; STATE.ana[id] = st.ana[id]; } });
+      if(st.anaChecked) checkAna();
+      STATE.bugMisses = st.bugMisses || {};
+      BUGS.forEach(function(b){ if(st.bugs && st.bugs[b.key]) solveBug(b); });
+      (st.quiz || []).forEach(function(oi, qi){ if(oi !== null && oi !== undefined) answerQuiz(qi, oi); });
+      (st.flow || []).forEach(function(k){ if(k === correctFlowOrder[flowBuilt.length]) placeFlow(k); });
+      TEXT_IDS.forEach(function(id){ if(typeof st[id] === "string") document.getElementById(id).value = st[id]; });
+      document.getElementById("usoIA").checked = !!st.usoIA;
+      if(st.conf) pickConf(st.conf);
+      if(st.sim && st.sim.length){ STATE.sim = st.sim.filter(function(k){ return !!SIM_NAMES[k]; }); rpcSim.markCompleted(STATE.sim); showSimDone(STATE.sim); }
+      if(st.imgLab){ STATE.imgLab = st.imgLab; showLab(st.imgLab); markDone("lab"); }
+      if(reflexion.value.trim().length > 10) markDone("refl");
+    } catch(e){ /* se sigue con lo que sí se pudo restaurar */ }
+    restoring = false;
+    saveNote.textContent = "Se recuperó tu avance guardado en este navegador. Sigue donde te quedaste.";
+  })();
+
+  /* ================== evidencia / PDF ================== */
+  var statusLine = document.getElementById("statusLine");
+  var missingList = document.getElementById("missingList");
+  document.getElementById("btnPDF").addEventListener("click", function(){
+    var matricula = document.getElementById("matricula").value.trim();
+    var missing = [];
+    if(!matricula) missing.push("Escribe tu matrícula.");
+    if(!STATE.imgLab) missing.push("Bloque 05: sube la captura de tus dos terminales (servidor y cliente).");
+    missingList.innerHTML = missing.map(function(m){ return "<li>" + m + "</li>"; }).join("");
+    if(missing.length){
+      statusLine.textContent = "Todavía no se puede generar el PDF. Falta:";
+      statusLine.style.color = "#C0392B";
+      return;
+    }
+    var bugsFound = BUGS.filter(function(b){ return STATE.bugs[b.key]; }).length;
+    var misses = BUGS.reduce(function(a, b){ return a + (STATE.bugMisses[b.key] || 0); }, 0);
+    var quizAnswered = quizState.filter(function(v){ return v !== null; }).length;
+    var quizCorrect = 0; quizState.forEach(function(v, i){ if(v !== null && v === quizData[i].correct) quizCorrect++; });
+    var flowDone = flowBuilt.length === correctFlowOrder.length;
+
+    try{
+      var doc = new window.jspdf.jsPDF({ unit:"pt", format:"letter" });
+      var PAGE_H = doc.internal.pageSize.getHeight(), PAGE_W = doc.internal.pageSize.getWidth();
+      var left = 56, y = 56, lineH = 17, maxW = PAGE_W - 2 * left;
+      function ensure(h){ if(y + h > PAGE_H - 56){ doc.addPage(); y = 56; } }
+      function title(t){ ensure(lineH * 2); doc.setFont("helvetica","bold"); doc.setFontSize(11.5); doc.text(t, left, y); y += lineH; doc.setFont("helvetica","normal"); doc.setFontSize(11); }
+      function line(t){ var w = doc.splitTextToSize(t, maxW); ensure(lineH * w.length); doc.text(w, left, y); y += lineH * w.length; }
+      function gap(){ y += 8; }
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(15);
+      doc.text("Programación Distribuida — Unidad II", left, y); y += lineH + 2;
+      doc.setFontSize(12); doc.text("Sesión 14: gRPC streaming", left, y); y += lineH + 6;
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      line("Matrícula: " + matricula);
+      line("Fecha de generación: " + new Date().toLocaleString("es-MX")); gap();
+
+      title("Simulador paso a paso");
+      line("Escenarios recorridos completos: " + STATE.sim.length + " / 4" + (STATE.sim.length ? " (" + STATE.sim.map(function(k){ return SIM_NAMES[k] || k; }).join(", ") + ")" : "")); gap();
+      title("01 · ¿Qué patrón es?");
+      line(STATE.anaChecked ? ("Correctas: " + anaCorrect + " / " + anaData.length) : "No revisado."); gap();
+      title("02 · Encuentra el bug");
+      line("Retos resueltos: " + bugsFound + " / " + BUGS.length + "   ·   Intentos fallidos antes de encontrarlos: " + misses); gap();
+      title("03 · Quiz de comprensión");
+      line("Respondidas: " + quizAnswered + " / " + quizData.length + "   ·   Correctas: " + quizCorrect + " / " + quizData.length); gap();
+      title("04 · Orden de una llamada de streaming");
+      line("Ordenada correctamente: " + (flowDone ? "Sí" : "No")); gap();
+      title("05 · Laboratorio: un mensaje por cada dígito");
+      line("Captura de las dos terminales: anexa en la última página.");
+      var reto = document.getElementById("reto").value.trim();
+      line("Salida que pegó del cliente:");
+      line(reto || "(no indicada)");
+      if(reto){
+        var digs = matricula.replace(/[^0-9]/g, "");
+        var nDig = (reto.match(/Digito \d+ de \d+/gi) || []).length;
+        var suma = 0; for(var di = 0; di < digs.length; di++) suma += Number(digs[di]);
+        line("¿Llegó un mensaje por cada dígito de " + matricula + " (" + digs.length + ")? " + (nDig === digs.length && digs.length > 0 ? "Sí" : "No — revisar (" + nDig + " encontrados)"));
+        line("¿Incluye la suma correcta (" + suma + ")? " + (new RegExp("suman?\\s*:?\\s*" + suma + "\\b", "i").test(reto) ? "Sí" : "No — revisar"));
+        line("¿Terminó el stream? " + (/Fin del stream/i.test(reto) ? "Sí" : "No — revisar"));
+      }
+      gap();
+      title("06 · Nivel de confianza");
+      line(confValue ? (confValue + " / 5") : "No registrado"); gap();
+      title("07 · Reflexión de cierre");
+      line(reflexion.value.trim() || "(sin respuesta)"); gap();
+      var conf = document.getElementById("confuso").value.trim();
+      if(conf){ title("Lo que quedó menos claro"); line(conf); gap(); }
+
+      doc.setFont("helvetica","italic"); doc.setFontSize(9);
+      var decl = "Declaratoria de uso de IAG (estudiante, Acuerdo No. 23/2024 UdeC): " + (document.getElementById("usoIA").checked ? "sí usó IA generativa como apoyo." : "no declaró uso de IA generativa.");
+      var dw = doc.splitTextToSize(decl, maxW); ensure(12 * dw.length); doc.text(dw, left, y);
+
+      doc.addPage(); y = 56;
+      doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text("Bloque 05 · Servidor y cliente de streaming", left, y); y += 20;
+      var d = STATE.imgLab, availH = PAGE_H - y - 56, ratio = Math.min(maxW / d.w, availH / d.h);
+      doc.addImage(d.src, "JPEG", left, y, d.w * ratio, d.h * ratio);
+
+      var filename = "Sesion14_gRPC_Streaming_" + matricula.replace(/[^a-zA-Z0-9]/g,"") + ".pdf";
+      doc.save(filename);
+      missingList.innerHTML = "";
+      statusLine.textContent = "PDF generado: " + filename + " — súbelo a Classroom.";
+      statusLine.style.color = "#146C43";
+    } catch(err){
+      statusLine.textContent = "No se pudo generar el PDF en este dispositivo. Intenta en otro navegador (Chrome o Edge) o avisa al profesor.";
+      statusLine.style.color = "#C0392B";
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
