@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>U3 · Sesión 2 · Tu primer ticket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F9; --panel:#FFFFFF; --ink:#141C2B; --soft:#4F5A6B; --line:#DCE2EB; --line2:#C6CEDA;
+  --dark:#121722; --dark2:#1C2331; --blue:#2E5BE6; --blue-ink:#1F43B0; --blue-t:#E8EEFD; --teal:#17A398; --teal-ink:#0C6259; --teal-t:#E2F5F2;
+  --amber:#E8A33D; --amber-ink:#7A4E0E; --amber-t:#FCF0DC; --red:#D2553F; --red-ink:#9C3422; --red-t:#FBE9E6;
+  --vio:#7B4FD6; --vio-ink:#5631A8; --vio-t:#EFE8FC;
+  --mono:'IBM Plex Mono', Consolas, Menlo, monospace;
+  --sans:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --disp:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0B0F17;overflow:hidden}
+body{font-family:var(--sans);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+[hidden]{display:none!important}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center}
+.s{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;padding:42px 64px 54px;overflow:hidden}
+.s.on{display:flex}
+.s.dark{background:var(--dark);color:#fff}
+.k{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.16em;color:var(--teal-ink);text-transform:uppercase}
+.dark .k{color:#4FD1C5}
+h1{font-family:var(--disp);font-size:58px;line-height:1.05;margin:10px 0 14px}
+h2{font-family:var(--disp);font-size:40px;line-height:1.12;margin:6px 0 18px}
+p,li,td,th{font-size:22px;line-height:1.45}
+p{margin:0 0 10px}
+.lead{font-size:24px;color:var(--soft);margin:0 0 18px}
+.dark .lead{color:#C9D2E3}
+code,.mono{font-family:var(--mono)}
+code{background:#E9EDF4;border-radius:6px;padding:1px 7px;font-size:.92em}
+.dark code{background:#2A3346;color:#E7ECF5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 22px}
+.card h3{font-family:var(--disp);font-size:25px;margin:0 0 8px}
+.card p:last-child{margin:0}
+.pill{display:inline-block;border-radius:999px;padding:2px 14px;font-weight:600;font-size:18px}
+.ok{background:var(--teal-t);color:var(--teal-ink)}
+.no{background:var(--red-t);color:var(--red-ink)}
+.warn{background:var(--amber-t);color:var(--amber-ink)}
+.info{background:var(--blue-t);color:var(--blue-ink)}
+table{border-collapse:collapse;width:100%}
+th{font-family:var(--disp);font-size:19px;text-align:left;color:var(--soft);border-bottom:2px solid var(--line2);padding:6px 10px}
+td{border-bottom:1px solid var(--line);padding:7px 10px;vertical-align:top;font-size:20px}
+td.c{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.big{font-family:var(--disp);font-size:72px;font-weight:700;line-height:1}
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat .big{color:var(--blue-ink)}
+.stat.r .big{color:var(--red-ink)}
+.stat.t .big{color:var(--teal-ink)}
+.stat span{font-size:20px;color:var(--soft);line-height:1.35}
+.def{border-left:6px solid var(--teal);background:var(--panel);border-radius:0 16px 16px 0;padding:16px 22px;font-size:26px;line-height:1.4;margin:0 0 16px}
+.ana{border-left:6px solid var(--amber);background:var(--amber-t);border-radius:0 16px 16px 0;padding:14px 22px;font-size:21px;line-height:1.45}
+.ref{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--blue);color:var(--blue-ink);background:#fff;font-family:var(--disp);font-weight:700;font-size:16px;vertical-align:middle;margin-left:10px;padding:0}
+.dark .ref{background:transparent;color:#9FB6FF;border-color:#9FB6FF}
+.code{background:var(--dark);color:#E7ECF5;border-radius:16px;padding:16px 22px;font-family:var(--mono);font-size:18px;line-height:1.5;white-space:pre;overflow:hidden}
+.code .cm{color:#7FD4C9}
+.code .dim{color:#8C97AB}
+.foot{position:absolute;left:64px;right:200px;bottom:16px;font-size:15px;color:var(--soft)}
+.dark .foot{color:#8C97AB}
+.vote{display:grid;gap:12px;margin-top:6px}
+.vote div{border:2px solid #3A4458;border-radius:14px;padding:12px 18px;font-size:24px}
+.vote b{font-family:var(--disp);color:#4FD1C5;margin-right:12px}
+ul.tight{margin:0;padding-left:26px}
+ul.tight li{margin:5px 0}
+.steps{counter-reset:st;display:grid;gap:12px}
+.steps>div{position:relative;padding-left:50px;min-height:34px;font-size:22px;line-height:1.45}
+.steps>div::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:10px;background:var(--teal-t);color:var(--teal-ink);font-family:var(--mono);font-weight:600;display:flex;align-items:center;justify-content:center;font-size:18px}
+/* diagrama cliente-servidor */
+.cs{display:grid;grid-template-columns:1fr 240px 1fr;align-items:center;gap:0;margin:8px 0 18px}
+.box{border:2px solid var(--line2);background:#fff;border-radius:18px;padding:18px 20px;text-align:center}
+.box b{display:block;font-family:var(--disp);font-size:26px}
+.box span{font-size:19px;color:var(--soft)}
+.box.api{border-color:var(--blue);background:var(--blue-t)}
+.arrows{display:flex;flex-direction:column;gap:18px;padding:0 10px}
+.arr{position:relative;text-align:center;font-family:var(--mono);font-size:16px;font-weight:600;padding-bottom:8px;border-bottom:3px solid var(--blue);color:var(--blue-ink)}
+.arr::after{content:'';position:absolute;right:-2px;bottom:-9px;border:7px solid transparent;border-left:12px solid var(--blue)}
+.arr.back{border-color:var(--teal);color:var(--teal-ink)}
+.arr.back::after{right:auto;left:-2px;border-left:7px solid transparent;border-right:12px solid var(--teal)}
+/* mensajes crudos anotados */
+.msg{background:var(--dark);border-radius:16px;padding:16px 20px;font-family:var(--mono);font-size:19px;line-height:1.6;color:#E7ECF5}
+.msg .ln{display:flex;gap:14px;align-items:baseline;white-space:pre}
+.msg .tg{flex:none;width:150px;font-family:var(--sans);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:right}
+.c1{color:#9FB6FF}.c2{color:#7FD4C9}.c3{color:#F2C27B}.c4{color:#F29A87}.c5{color:#C9B3FF}.cg{color:#8C97AB}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.legend span{border-radius:10px;padding:6px 12px;font-size:19px;background:#fff;border:1px solid var(--line)}
+.legend b{font-family:var(--disp)}
+/* tabla con revelado */
+.rv button{border:1.5px dashed var(--line2);background:#fff;border-radius:10px;padding:3px 12px;font-size:17px;color:var(--soft)}
+.rv .ans{font-weight:600}
+/* simulador de fotos */
+.sim{display:grid;grid-template-columns:380px 1fr;gap:20px}
+.sim .btns{display:grid;gap:8px;align-content:start}
+.sim button.req{text-align:left;border:2px solid var(--line2);background:#fff;border-radius:12px;padding:8px 12px;font-family:var(--mono);font-size:16.5px}
+.sim button.req:hover{border-color:var(--blue)}
+.sim button.req small{display:block;font-family:var(--sans);color:var(--soft);font-size:14px}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.photo{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-family:var(--mono);font-size:16px;min-height:150px;white-space:pre}
+.photo .chg{background:var(--amber-t);color:var(--amber-ink);font-weight:600}
+.lbl{font-size:16px;color:var(--soft);font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em}
+.verdict{margin-top:12px;border-radius:14px;padding:12px 16px;font-size:20px;line-height:1.4;background:#fff;border:2px dashed var(--line2)}
+.verdict.y{border:2px solid var(--teal);background:var(--teal-t);color:var(--teal-ink)}
+.verdict.n{border:2px solid var(--red);background:var(--red-t);color:var(--red-ink)}
+/* termostato */
+.thermo{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.thermo .card{text-align:center}
+.thermo .seq{display:flex;justify-content:center;gap:10px;margin:10px 0;font-family:var(--mono);font-size:22px}
+.thermo .seq span{border-radius:10px;padding:6px 12px;background:var(--bg);border:1px solid var(--line)}
+/* malentendidos */
+.myth{display:grid;grid-template-columns:1fr;gap:12px}
+.myth .m{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 20px}
+.myth .m .x{font-size:22px;color:var(--red-ink);font-weight:600}
+.myth .m .x::before{content:'✗ ';font-weight:700}
+.myth .m p{margin:0;font-size:20.5px}
+/* sistema final */
+.sys{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:16px;align-items:stretch}
+.sys .node{border:2px solid var(--line2);background:#fff;border-radius:16px;padding:12px 14px}
+.sys .node>b{font-family:var(--disp);font-size:22px;display:block;margin-bottom:4px}
+.sys .node ul{margin:0;padding-left:20px}
+.sys .node li{font-size:18.5px;margin:2px 0}
+.sys .api{border-color:var(--blue);background:var(--blue-t)}
+.ss{font-family:var(--mono);font-size:14px;font-weight:600;border-radius:8px;padding:1px 7px;background:var(--teal-t);color:var(--teal-ink);margin-left:4px;white-space:nowrap}
+.sys .col{display:grid;gap:12px;align-content:center}
+.sys .lnk{font-family:var(--mono);font-size:15px;color:var(--soft);text-align:center}
+.small td{font-size:17.5px;padding:5px 8px}
+.small th{font-size:16px;padding:4px 8px}
+/* navegación */
+#nav{position:fixed;right:14px;bottom:12px;display:flex;gap:8px;align-items:center;z-index:20}
+#nav button{background:#1C2331;color:#fff;border:1px solid #3A4458;border-radius:10px;padding:6px 12px;font-size:15px}
+#nav span{color:#AEB8CA;font-family:var(--mono);font-size:14px;min-width:64px;text-align:center}
+#bar{position:fixed;left:0;top:0;height:4px;background:var(--teal);z-index:20;transition:width .2s}
+#modal{position:fixed;inset:0;background:rgba(10,14,22,.62);display:flex;align-items:center;justify-content:center;z-index:30;padding:20px}
+#modal .box2{background:#fff;color:var(--ink);border-radius:18px;max-width:760px;width:100%;padding:24px 28px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#modal h4{font-family:var(--disp);font-size:24px;margin:0 0 8px}
+#modal .d{font-size:18px;line-height:1.5;margin:0 0 12px}
+#modal .apa{font-size:16px;line-height:1.5;background:var(--bg);border-radius:12px;padding:12px 14px;padding-left:2.2em;text-indent:-1.6em}
+#modal button{margin-top:14px;border:1px solid var(--line2);background:#fff;border-radius:10px;padding:8px 16px;font-size:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.filters .f{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;position:relative}
+.filters .f .num{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--soft)}
+.filters .f h3{font-family:var(--disp);font-size:22px;margin:4px 0 6px;line-height:1.2}
+.filters .f .cd{font-family:var(--disp);font-size:44px;font-weight:700;line-height:1;margin:6px 0}
+.filters .f p{font-size:18px;margin:0;color:var(--soft)}
+.filters .f.fc1{border-top:6px solid var(--amber)} .filters .f.fc1 .cd{color:var(--amber-ink)}
+.filters .f.fc2{border-top:6px solid var(--blue)} .filters .f.fc2 .cd{color:var(--blue-ink)}
+.filters .f.fc3{border-top:6px solid var(--vio)} .filters .f.fc3 .cd{color:var(--vio-ink)}
+.filters .f.fc4{border-top:6px solid var(--red)} .filters .f.fc4 .cd{color:var(--red-ink)}
+.pipe{display:flex;align-items:center;gap:10px;margin:8px 0 16px;flex-wrap:nowrap}
+.pipe .st{border:2px solid var(--line2);background:#fff;border-radius:14px;padding:10px 14px;font-size:19px;text-align:center;flex:1}
+.pipe .st b{display:block;font-family:var(--disp);font-size:21px}
+.pipe .st.v{border-color:var(--teal);background:var(--teal-t)}
+.pipe .ar{font-size:26px;color:var(--soft)}
+.term{background:var(--dark);color:#E7ECF5;border-radius:14px;padding:12px 16px;font-family:var(--mono);font-size:16px;line-height:1.5;white-space:pre;overflow:hidden}
+.term .ok{color:#7FD4C9;background:none}.term .bad{color:#F29A87}.term .cm{color:#8C97AB}.term .y{color:#F2C27B}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.cols3 .code{font-size:14.5px;padding:12px 14px;line-height:1.5}
+.cols3 h3{font-family:var(--disp);font-size:20px;margin:0 0 6px}
+.code .new{display:block;background:rgba(232,163,61,.18);border-left:4px solid var(--amber);margin:0 -22px;padding:0 18px}
+.retro{display:grid;grid-template-columns:1fr;gap:9px}
+.retro .r{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px 16px}
+.retro .r code{font-size:16.5px}
+.retro .r p{margin:0;font-size:18.5px;line-height:1.4}
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.team div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:16.5px;line-height:1.35}
+.team b{font-family:var(--disp);font-size:17.5px;display:block}
+.flow6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:6px}
+.flow6 .st{position:relative;background:#fff;border:2px solid var(--line2);border-radius:14px;padding:12px 12px;font-size:16.5px;line-height:1.35;color:var(--soft)}
+.flow6 .st b{display:block;font-family:var(--disp);font-size:20px;color:var(--ink);margin:2px 0 4px}
+.flow6 .st .n{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--soft)}
+.flow6 .st.hoy{border-color:var(--teal);background:var(--teal-t)}
+.flow6 .st.hoy::after{content:'HOY';position:absolute;top:-11px;right:10px;background:var(--teal);color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px}
+tr.now td{background:var(--teal-t);font-weight:600}
+.mapa td{font-size:15.5px;padding:3px 8px;line-height:1.3}.mapa th{font-size:14.5px;padding:3px 8px}
+.ticket{background:#fff;border:1px solid var(--line);border-left:8px solid var(--red);border-radius:16px;padding:16px 22px;margin-top:6px}
+.ticket .th{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ticket .id{font-family:var(--mono);font-weight:700;font-size:19px;color:var(--blue-ink)}
+.ticket .tag{border-radius:999px;padding:1px 12px;font-size:15px;font-weight:600}
+.ticket .tag.r{background:var(--red-t);color:var(--red-ink)} .ticket .tag.a{background:var(--amber-t);color:var(--amber-ink)}
+.ticket h3{font-family:var(--disp);font-size:26px;margin:4px 0 8px;line-height:1.2}
+.ticket p{font-size:19.5px;margin:0}
+ul.ac{list-style:none;padding:0;margin:4px 0 0}
+ul.ac li{position:relative;padding-left:32px;font-size:19px;line-height:1.4;margin:5px 0}
+ul.ac li::before{content:'';position:absolute;left:0;top:3px;width:18px;height:18px;border:2px solid var(--line2);border-radius:5px;background:#fff}
+.lbl2{font-size:15px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+.iv{display:grid;gap:10px}
+.iv div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 16px}
+.iv b{display:block;font-family:var(--disp);font-size:21px;margin-bottom:3px}
+.iv span{font-size:18.5px;color:var(--soft);line-height:1.4}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="stage">
+
+<!-- 1 -->
+<section class="s dark" data-t="Portada">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <img src="data:image/svg+xml;base64,IDxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTmVncm9fMDAwMDAwMzE5MDA3NTc4MzI2OTczMDEzOTAwMDAwMDc0MzIyNzY5ODU0NTMxNzgyNTFfIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDU4Mi43IDE5OS4yIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1ODIuNyAxOTkuMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPjxnPjxnPjxwYXRoIGQ9Ik05OC45LDE0LjZjLTQ2LjUsMC04NC4zLDM4LjMtODQuMyw4NS4yYzAsNDYuOSwzNy45LDg1LjIsODQuMyw4NS4yYzQ2LjQsMCw4NC4zLTM4LjMsODQuMy04NS4yJiN4QTtDMTgzLjMsNTIuOCwxNDUuNCwxNC42LDk4LjksMTQuNnogTTk4LjksMTgxLjVjLTQ0LjYsMC04MS0zNi43LTgxLTgxLjhjMC00NSwzNi40LTgxLjcsODEtODEuN2M0NC42LDAsODEsMzYuNyw4MSw4MS44JiN4QTtDMTc5LjksMTQ0LjgsMTQzLjUsMTgxLjUsOTguOSwxODEuNXoiPjwvcGF0aD48cGF0aCBkPSJNOTguOSwyMi42Yy00Mi4xLDAtNzYuNCwzNC43LTc2LjQsNzcuMmMwLDQyLjUsMzQuMyw3Ny4yLDc2LjQsNzcuMmM0Mi4xLDAsNzYuNC0zNC43LDc2LjQtNzcuMiYjeEE7QzE3NS40LDU3LjIsMTQxLDIyLjYsOTguOSwyMi42eiBNOTguOSwxNzMuNGMtNDAuMiwwLTczLTMzLjEtNzMtNzMuN2MwLTQwLjYsMzIuOC03My43LDczLTczLjdzNzMsMzMuMSw3Myw3My43JiN4QTtDMTcxLjksMTQwLjMsMTM5LjEsMTczLjQsOTguOSwxNzMuNHoiPjwvcGF0aD48Zz48cGF0aCBkPSJNMTQxLjUsNjYuMkMxNDEuNSw2Ni4zLDE0MS41LDY2LjMsMTQxLjUsNjYuMkMxNDEuNSw2Ni4zLDE0MS41LDY2LjMsMTQxLjUsNjYuMkMxNDEuNSw2Ni4zLDE0MS41LDY2LjMsMTQxLjUsNjYuMnoiPjwvcGF0aD48cGF0aCBkPSJNMTUwLjYsMTQ4Yy0zLjMsMC4xLTYuMi0yLjctNi4yLTYuMnYtMjIuM2wwLDBsNC43LDIuMnYyMi43QzE0OS4yLDE0NS42LDE0OS42LDE0Ni44LDE1MC42LDE0OHoiPjwvcGF0aD48cGF0aCBkPSJNMTQ0LjUsMTQ1LjFjLTMuMywwLjEtNi4yLTIuNy02LjItNi4ydi0yMi4zbDAsMGw0LjcsMi4ydjIyLjZDMTQzLDE0Mi44LDE0My40LDE0NCwxNDQuNSwxNDUuMXoiPjwvcGF0aD48cGF0aCBkPSJNMTM2LjksMTE2djIyLjVjMCwxLjMtMS4xLDIuNC0yLjQsMi40cy0yLjQtMS4xLTIuNC0yLjR2LTI0LjdsMCwwTDEzNi45LDExNnoiPjwvcGF0aD48cGF0aCBkPSJNMTUwLjYsMTE4LjFjLTMuMywwLjEtNi4yLTIuNi02LjItNi4yVjkxLjZsMCwwbDQuNywyLjJ2MjAuN0MxNDkuMiwxMTUuNywxNDkuNiwxMTYuOSwxNTAuNiwxMTguMXoiPjwvcGF0aD48cGF0aCBkPSJNMTUwLjYsOTAuMWMtMy4zLDAuMS02LjItMi43LTYuMi02LjJWNjUuMWwwLTEuOGw0LjcsMi4ydjIwLjlDMTQ5LjIsODcuOCwxNDkuNiw4OC45LDE1MC42LDkwLjF6Ij48L3BhdGg+PHBhdGggZD0iTTE0NC41LDExNS4yYy0zLjMsMC4xLTYuMi0yLjYtNi4yLTYuMlY4OC43bDAsMGw0LjcsMi4ydjIwLjdDMTQzLDExMi45LDE0My40LDExNCwxNDQuNSwxMTUuMnoiPjwvcGF0aD48cGF0aCBkPSJNMTQ0LjUsODcuM2MtMy4zLDAuMS02LjItMi42LTYuMi02LjJWNzAuN2MxLjctMSwzLjUtMi4zLDQuNy00LjJsMCwxNy4yQzE0Myw4NSwxNDMuNCw4Ni4xLDE0NC41LDg3LjN6Ij48L3BhdGg+PHBhdGggZD0iTTUzLjQsMTE5LjV2MjIuM2MwLDMuNS0yLjgsNi4yLTYuMiw2LjJjMS0xLjIsMS40LTIuMywxLjQtMy42di0yMi43TDUzLjQsMTE5LjVMNTMuNCwxMTkuNXoiPjwvcGF0aD48cGF0aCBkPSJNNTkuNiwxMTYuN1YxMzljMCwzLjUtMi44LDYuMi02LjIsNi4yYzEtMS4yLDEuNC0yLjMsMS40LTMuNnYtMjIuNkw1OS42LDExNi43TDU5LjYsMTE2Ljd6Ij48L3BhdGg+PHBhdGggZD0iTTY1LjcsMTEzLjh2MjQuN2MwLDEuMy0xLjEsMi40LTIuNCwyLjRjLTEuMywwLTIuNC0xLjEtMi40LTIuNFYxMTZMNjUuNywxMTMuOEw2NS43LDExMy44eiI+PC9wYXRoPjxwYXRoIGQ9Ik01My40LDkxLjZ2MjAuM2MwLDMuNS0yLjgsNi4yLTYuMiw2LjJjMS0xLjIsMS40LTIuMywxLjQtMy42VjkzLjhMNTMuNCw5MS42TDUzLjQsOTEuNnoiPjwvcGF0aD48cGF0aCBkPSJNNTkuNiw4OC43djIwLjNjMCwzLjUtMi44LDYuMi02LjIsNi4yYzEtMS4yLDEuNC0yLjMsMS40LTMuNlY5MC45TDU5LjYsODguN0w1OS42LDg4Ljd6Ij48L3BhdGg+PHBhdGggZD0iTTEwMi44LDQyLjZjMy44LDMuNCw2LjIsMy4zLDYuMiwzLjNjLTEwLjcsMy4zLTEyLjEtNi41LTEyLjEtNi41bC0zLjQtMS45Yy0wLjctMC40LTAuOS0xLjQtMC4zLTImI3hBO2MwLjQtMC40LDEuMi0wLjUsMS43LTAuMmMwLjEsMC4xLDAuMywwLjIsMC41LDAuM2M3LjIsMy40LDEyLjcsMC44LDE1LjQtMC4yYy0xLjcsMy42LTYsNC02LDRjMS44LDEuNCwzLjYsMS4xLDUuOSwxLjMmI3hBO0MxMDgsNDIuOSwxMDQuNiw0Mi43LDEwMi44LDQyLjZ6Ij48L3BhdGg+PHBhdGggZD0iTTE0Ny4yLDU1LjRjLTAuNi0zLjctMi4zLTYuNi01LjktOS4yYy02LjItNC4zLTExLjItMS40LTEzLjksMS41Yy0yLjYsMi45LTEsNy4xLTAuNyw4LjdjMC4zLDMtMC42LDYuNi02LjgsNy4xJiN4QTtjLTguMSwwLjUtMTAuNy03LjQtMTEuNi05LjljLTUuMywxLjEtOC40LTAuNi04LjQtMC42bC0xLjIsNy41YzAuMS0wLjEsMC4yLTAuMiwwLjMtMC4zYzAuNC0wLjMsMC45LTAuNSwxLjQtMC41bDEuMSwwJiN4QTtjMC40LDAsMC45LDAuMSwxLjIsMC40YzAuNSwwLjQsMSwwLjksMS42LDEuNmMzLjQsMy42LDEwLjMsMTEsMjYuNSwxNC4ybDAtMi41Yy0yLjMtMC40LTQuOS0xLjUtNy42LTMuOGMyLDAuOSwzLjgsMS40LDUuNCwxLjYmI3hBO2MzLjEsMC4yLDQuNi0wLjMsNi43LTEuMWMwLjUtMC4yLDEuMi0wLjcsMS40LTAuOGMtMi43LTAuNi02LTIuMi05LjEtNS40YzYuNyw0LDExLjUsMy4xLDEzLjksMi4xYy0zLjItMC43LTcuMS0zLjEtOS45LTcuNyYjeEE7YzQuNCwzLjcsOC41LDQuNiwxMS42LDQuNWMtMi4yLTIuMS00LjMtNS42LTUuMy0xMC40YzIuMiw0LjQsNC43LDYuOSw3LDguM2wzLjMsMS41YzAsMCwwLDAsMC4xLDBjMC41LDAuMSwxLDAuMiwxLjQsMC4zJiN4QTtDMTQ5LjMsNjEuOCwxNDcuNiw1OS40LDE0Ny4yLDU1LjR6IE0xMzYuOSw4OC4xbC0yLjMtMS4xYzAuMS0xLjIsMC4zLTIuMywwLjMtMy42YzEsMC42LDIuMSwxLDMuNCwxYy0xLTEuMi0xLjQtMi40LTEuNC0zLjYmI3hBO3YtOS40Yy0wLjgsMC40LTEuNiwwLjctMi4zLDAuOWMwLDAtMC4xLDAtMC4xLDAuMWMtMC44LDAuMy0xLjUsMC41LTIuMSwwLjVjLTAuMSwwLTAuMSwwLTAuMSwwbDAsNC45Yy0wLjktMC4xLTEuOS0wLjMtMi4yLTAuNCYjeEE7Yy0xNi4zLTMuNC0yMy4zLTEwLjktMjYuOC0xNC42Yy0wLjYtMC42LTEtMS4xLTEuNC0xLjRjMCwwLTAuMi0wLjEtMC4zLTAuMWwtMS4xLDBjLTAuMiwwLTAuMywwLTAuNCwwLjEmI3hBO2MtMS41LDEuNi0zLjUsMy41LTQuMyw0LjJjMCwwLTIuNi0xLjQtMi42LTEuNWMtMC40LTAuMi0wLjktMC4xLTEuMSwwLjNjLTAuMiwwLjMtMC42LDAuOS0wLjksMS4zYy0wLjMsMC40LTAuNiwwLjctMC45LDEmI3hBO2MtNC4zLDMuMy0xMS40LDguMS0xOS44LDEwYy0wLjksMC4yLTQuMywwLjgtNC41LDAuOGwwLTQuN2MtMS40LTAuMS0zLjEtMC43LTQuNy0xLjl2OS44YzAsMS4zLTAuNCwyLjQtMS40LDMuNiYjeEE7YzEuMiwwLDIuMy0wLjMsMy4zLTAuOWMwLjEsMS4yLDAuMiwyLjQsMC4zLDMuNWwtMi4yLDF2MjAuN2MwLDEuMy0wLjQsMi40LTEuNCwzLjZjMy4zLDAuMSw2LjItMi43LDYuMi02LjJ2LTQuMSYjeEE7YzAuOSwzLjYsMS45LDcsMy4yLDEwLjJsLTEuOCwwLjhsMCwyMi42YzAsMS40LDEuMywyLjYsMi43LDIuNGMxLjItMC4yLDItMS4zLDItMi41di0xNi42YzAuNCwwLjksMC45LDEuOCwxLjQsMi42djExLjImI3hBO2MwLDEuMywxLjEsMi40LDIuNSwyLjRjMS40LDAsMi41LTEuMSwyLjUtMi40di0zLjVjMi45LDMuOCw2LjIsNy41LDEwLDExLjFjLTAuMiwwLjUtMC40LDEuMS0wLjQsMS4yJiN4QTtjLTEuNSw0LjEtNC42LDkuOC05LjgsMTIuMmMyLjEsMi4xLDQuNSw0LjIsNy4yLDYuMmw1LjMtMTQuN2MwLjQtMS4xLDEuNi0wLjQsMS4yLDAuN2wtNS4xLDE1YzEuNiwxLjEsMy4yLDIuMiw1LDMuM2wzLjgtMTQuNyYjeEE7YzAuNC0xLjQsMS41LTAuOCwxLjQsMGwtMy4xLDE2bC0wLjQsMS42bDEwLjktMC4xbC0wLjMtMS41bC0zLjEtMTYuMWMtMC4xLTAuOCwxLTEuNCwxLjQsMGwzLjgsMTQuOGMxLjctMS4xLDMuNC0yLjIsNS0zLjMmI3hBO2wtNS4yLTE1LjFjLTAuNC0xLjEsMC44LTEuOCwxLjItMC43bDUuNCwxNC44YzIuNy0yLDUuMS00LDcuMy02LjJjLTUuNC0yLjQtOC41LTguNC0xMC0xMi42bC0wLjMtMC43JiN4QTtjMy45LTMuNyw3LjMtNy40LDEwLjItMTEuM3YzLjdjMCwxLjMsMS4xLDIuNCwyLjUsMi40YzEuNCwwLDIuNS0xLjEsMi41LTIuNHYtMTEuNGMwLjUtMC45LDEtMS43LDEuNC0yLjd2MTYuOCYjeEE7YzAsMS4yLDAuOCwyLjMsMiwyLjVjMS41LDAuMiwyLjctMC45LDIuNy0yLjR2LTIyLjZsLTEuOS0wLjljMS4zLTMuNCwyLjQtNi45LDMuMy0xMC42djQuNWMwLDMuNSwyLjgsNi4yLDYuMiw2LjImI3hBO2MtMS0xLjItMS40LTIuMy0xLjQtMy42Vjg4LjF6IE0xMzMuNSw4Mi4yYy0wLjEsMS40LTAuMiwyLjgtMC40LDQuMmMtMC4zLDIuNy0wLjYsNS4yLTEsNy43Yy0xLDYuNC0yLjYsMTIuMy00LjYsMTcuNiYjeEE7Yy0wLjUsMS4yLTEsMi41LTEuNSwzLjZjLTAuNCwxLTAuOSwyLTEuNCwyLjljLTEuNSwyLjktMy4xLDUuNy01LDguNGMtNS4yLDcuNC0xMiwxNC4xLTIwLjcsMjAuOGMtOC42LTYuNi0xNS40LTEzLjMtMjAuNi0yMC42JiN4QTtjLTEuOS0yLjctMy42LTUuNC01LTguM2MtMC41LTEtMS0xLjktMS40LTIuOWMtMC42LTEuMi0xLjEtMi41LTEuNi0zLjhjLTItNS4yLTMuNS0xMC44LTQuNS0xNi45Yy0wLjQtMi43LTAuOC01LjUtMS4xLTguNCYjeEE7Yy0wLjEtMS4zLTAuMy0yLjctMC40LTQuMWMwLTAuNC0wLjEtMC44LTAuMS0xLjFjMC4zLDAsMC42LTAuMSwwLjktMC4xYzEzLjMtMiwyNC43LTYuOSwzMy44LTE2LjNjOS4xLDkuMywyMC44LDEzLjksMzMuOSwxNi4zJiN4QTtjMC4zLDAuMSwwLjUsMC4xLDAuOCwwLjFDMTMzLjYsODEuNSwxMzMuNiw4MS45LDEzMy41LDgyLjJ6IE0xMDcuNSw0OC41YzAsMC0xMC4zLDEuOS0xMi4zLTcuNmMtMS45LTEtMy4zLTEuNi0zLjMtMS42JiN4QTtsLTAuNCwwLjljMCwwLTEuMi0wLjctMy0wLjZjLTIuNy0wLjEtNC44LDIuNC00LjMsNC44YzAsMCwxLjItMC45LDIuNy0xYzAsMC41LDAsMS4xLDAuMywxLjhjMC40LDEuMywyLjQsMi45LDQuMyw0JiN4QTtjLTAuMiwyLTAuNiw0LjUtMS42LDYuN2MwLDAuMS0wLjgsMS43LTAuOCwxLjhjLTEuNSwyLjctNSw3LjctMTEuMiw1LjljLTIuNS0wLjctNS4xLTQuMy02LjctNy4yYzAuMy0xLjYsMi01LjgtMC42LTguNyYjeEE7Yy0yLjYtMy03LjYtNS45LTEzLjktMS42Yy0zLjYsMi42LTUuNCw1LjUtNiw5LjJjLTAuNCwzLjMtMS42LDUuNS0yLjQsNi43YzAuNywwLDEuOC0wLjEsMy4xLTAuNmwxLjQtMC42JiN4QTtjMi41LTEuMiw1LjYtMy44LDguMS04LjhjLTEuMSw1LjMtMy42LDguOS02LDEwLjljMy4yLDAuMiw3LjQtMC43LDExLjktNC40Yy0yLjgsNC42LTYuNyw2LjktOS45LDcuNmMyLjQsMSw3LjIsMiwxMy45LTImI3hBO2MtMy4xLDMuMi02LjQsNC44LTkuMSw1LjNjMC40LDAuMywxLjIsMC45LDIuNSwxLjRjMC4zLDAuMSwwLjYsMC4yLDAuOSwwLjNjMCwwLDAuMSwwLDAuMSwwYzIuMywwLjYsNS42LDAuNiw5LjktMS40JiN4QTtjLTEuMSwwLjktMi4yLDEuNy0zLjMsMi4yYy0xLjYsMC45LTMuMywxLjMtNC43LDEuNWwwLDBsMCwwbDAsMi40YzkuMi0xLjMsMTcuNS02LjgsMjIuMi0xMC40YzAuMy0wLjIsMC42LTAuNSwwLjgtMC44JiN4QTtjMC41LTAuNiwxLjMtMS43LDEuNi0yLjJjMC4zLTAuNSwxLTAuNiwxLjQtMC4ybDMsMS44YzEuMS01LjEsMi4yLTEzLjUsMi4yLTEzLjVzNC45LDQuMSwxMi4yLDAuMSYjeEE7QzEwOC44LDQ5LjgsMTA3LjUsNDguNSwxMDcuNSw0OC41eiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMjUuNCw4Ni42Yy0xMC4xLTIuOC0xOC42LTYuNy0yNi0xMS43bC0wLjUtMC4zbC0wLjUsMC4zYy03LjQsNS0xNS45LDguOC0yNiwxMS43bC0wLjcsMC4ybDAuMSwwLjcmI3hBO2MyLDI4LjUsMTQsNDAuOSwyNi42LDUwLjFsMC41LDAuNGwwLjUtMC40QzExMiwxMjguNCwxMjQsMTE2LDEyNiw4Ny41bDAuMS0wLjdMMTI1LjQsODYuNnogTTkwLDgxLjljMy4xLTEuNSw2LjEtMy4yLDguOS01LjEmI3hBO2MyLjUsMS43LDUsMy4yLDcuOCw0LjV2NS4xYy0wLjYtMC4xLTEuMi0wLjEtMS44LTAuMWMtMi4yLDAtNC4xLDAuNS01LjgsMS42bC0wLjEsMGwtMC4xLDBjLTEuNy0xLTMuNi0xLjYtNS44LTEuNiYjeEE7Yy0xLDAtMiwwLjEtMywwLjNWODEuOXogTTg4LjIsMTI2LjNjLTcuNC04LjItMTMuMi0xOS43LTE0LjctMzguMmM1LjMtMS41LDEwLjItMy4zLDE0LjctNS40djQuMWMwLDAtMC4xLDAtMC4xLDAmI3hBO2MtMS4zLDAuMi0yLjUsMC40LTMuNiwwLjRjLTEuOCwwLTIuOS0wLjUtMi45LTAuNXYyOGMwLDAsMy40LDAuOSw1LDAuOWMwLjUsMCwxLjEsMCwxLjctMC4xVjEyNi4zeiBNODguMiwxMTIuNiYjeEE7Yy0wLjYsMC0xLjEsMC4xLTEuNywwLjFjLTEuMiwwLTIuNC0wLjEtMy40LTAuNVY4OC42YzAuNSwwLjEsMC45LDAuMSwxLjQsMC4xYzEuMSwwLDIuNC0wLjIsMy43LTAuNGMwLjYtMC4xLDEuMi0wLjIsMS44LTAuMyYjeEE7YzEtMC4xLDItMC4zLDMtMC4zYzEuNywwLDMuNCwwLjMsNSwxLjN2MjMuOGMtMC4zLTAuMS0wLjctMC4zLTEuMS0wLjNjLTAuMiwwLTAuNC0wLjEtMC41LTAuMWMtMC4yLDAtMC41LTAuMS0wLjctMC4xJiN4QTtjLTAuMiwwLTAuNC0wLjEtMC43LTAuMUg5NWMtMC4xLDAtMC4zLDAtMC40LDBjMCwwLTAuMSwwLTAuMSwwaDBjLTAuMSwwLTAuMiwwLTAuMywwYzAsMCwwLDAsMCwwYy0wLjEsMC0wLjMsMC0wLjQsMCYjeEE7Yy0wLjEsMC0wLjIsMC0wLjMsMGgtMC4xYy0wLjEsMC0wLjEsMC0wLjIsMGMtMSwwLTIsMC4xLTMsMC4ySDkwQzg5LjQsMTEyLjUsODguOCwxMTIuNSw4OC4yLDExMi42eiBNMTA2LjYsMTI5LjMmI3hBO2MtMi41LDIuNC01LjEsNC41LTcuOCw2LjRjLTMtMi4yLTYuMS00LjctOC45LTcuNXYtMTIuN2MwLDAsMC4xLDAsMC4xLDBjMS4yLTAuMSwyLjQtMC4yLDMuNS0wLjJjMS45LDAsMy4yLDAuMyw0LDAuNyYjeEE7YzAuOCwwLjMsMS44LDAuNCwyLjYsMGMwLjktMC40LDIuMi0wLjcsMy45LTAuN2MwLjgsMCwxLjYsMCwyLjQsMC4xVjEyOS4zeiBNMTA2LjYsMTEyLjNjLTAuMSwwLTAuMywwLTAuNCwwJiN4QTtjLTAuMSwwLTAuMiwwLTAuMiwwaC0wLjJjLTAuMSwwLTAuMywwLTAuNCwwYy0wLjEsMC0wLjMsMC0wLjUsMGMtMC4xLDAtMC4yLDAtMC40LDBzLTAuMiwwLTAuNCwwYy0wLjIsMC0wLjQsMC0wLjYsMCYjeEE7Yy0wLjIsMC0wLjQsMC0wLjYsMGMtMC4yLDAtMC40LDAtMC42LDBjLTAuMiwwLTAuNCwwLTAuNiwwLjFjLTAuMiwwLTAuNCwwLTAuNSwwLjFjLTAuMiwwLTAuNCwwLjEtMC41LDAuMSYjeEE7Yy0wLjQsMC4xLTAuNywwLjItMS4xLDAuM1Y4OS4xYzEuNi0xLDMuMy0xLjMsNS0xLjNjMC42LDAsMS4yLDAsMS44LDAuMWgwLjFjMC4xLDAsMC4xLDAsMC4yLDBjMC40LDAsMC45LDAuMSwxLjMsMC4yJiN4QTtjMC4xLDAsMC4xLDAsMC4yLDBjMC45LDAuMSwxLjksMC4zLDIuNywwLjRjMC4xLDAsMC4zLDAsMC40LDBjMC4zLDAsMC41LDAuMSwwLjgsMC4xYzAuMywwLDAuNiwwLDAuOSwwYzAuNSwwLDEsMCwxLjQtMC4xdjIzLjUmI3hBO2MtMSwwLjQtMi4yLDAuNS0zLjQsMC41aDBjLTAuNSwwLTAuOSwwLTEuNCwwYy0wLjEsMC0wLjIsMC0wLjMsMGMtMC40LDAtMC44LTAuMS0xLjItMC4xYy0wLjIsMC0wLjQsMC0wLjYsMCYjeEE7QzEwNy40LDExMi40LDEwNywxMTIuNCwxMDYuNiwxMTIuM3ogTTEwOC40LDEyNy41di0xMmMxLDAuMSwxLjksMC4xLDIuOSwwLjFjMi45LDAsNS0xLDUtMVY4Ni43YzAsMC0xLjIsMC41LTMsMC41JiN4QTtjLTEsMC0yLjMtMC4yLTMuNi0wLjRjLTAuNC0wLjEtMC45LTAuMS0xLjMtMC4ydi00LjRjNC44LDIuMywxMCw0LjMsMTUuOCw1LjlDMTIyLjcsMTA3LjYsMTE2LjMsMTE5LjIsMTA4LjQsMTI3LjV6Ij48L3BhdGg+PHBhdGggZD0iTTY5LDgyLjFsLTEsMC4ybDAuNSwyLjJjMC4xLDAuNS0wLjEsMC44LTAuNSwwLjljLTAuNSwwLjEtMC44LTAuMS0wLjktMC42bC0wLjUtMi4ybC0xLDAuMmwwLjUsMi4yYzAuMywxLDEuMSwxLjIsMiwxJiN4QTtjMC45LTAuMiwxLjYtMC44LDEuMy0xLjhMNjksODIuMXoiPjwvcGF0aD48cG9seWdvbiBwb2ludHM9IjcwLjYsODIuNiA3Mi41LDg1IDczLjksODQuNiA3Mi45LDgxLjEgNzIsODEuMyA3Mi43LDgzLjkgNzIuNyw4My45IDcwLjgsODEuNiA2OS41LDgyIDcwLjUsODUuNSA3MS4zLDg1LjMgJiN4QTs3MC42LDgyLjYgIj48L3BvbHlnb24+PHBvbHlnb24gcG9pbnRzPSI3NS40LDg0LjEgNzQuMyw4MC42IDczLjQsODAuOSA3NC40LDg0LjQgIj48L3BvbHlnb24+PHBvbHlnb24gcG9pbnRzPSI3OC4xLDgzLjIgNzguMiw3OS4zIDc3LjIsNzkuNyA3Ny4yLDgyLjQgNzcuMiw4Mi40IDc1LjYsODAuMiA3NC42LDgwLjUgNzYuOSw4My42ICI+PC9wb2x5Z29uPjxwb2x5Z29uIHBvaW50cz0iODIuMiw4MS43IDgyLDgxLjEgODAuMyw4MS43IDgwLDgwLjkgODEuNiw4MC40IDgxLjMsNzkuNyA3OS44LDgwLjMgNzkuNSw3OS42IDgxLjIsNzkgODAuOSw3OC4zIDc4LjQsNzkuMyAmI3hBOzc5LjYsODIuNyAiPjwvcG9seWdvbj48cGF0aCBkPSJNODUuMSw3OS41Qzg0LjksNzksODQuNiw3OC44LDg0LDc5djBjMC40LTAuMiwwLjctMC43LDAuNS0xLjJjLTAuMy0wLjctMS4xLTAuNi0xLjctMC4zbC0xLjYsMC42bDEuNCwzLjRsMC45LTAuNCYjeEE7bC0wLjUtMS4zbDAuNC0wLjFjMC41LTAuMiwwLjYsMCwwLjgsMC4zYzAuMSwwLjIsMC4yLDAuNSwwLjQsMC43bDEtMC40Qzg1LjQsODAuMSw4NS4zLDc5LjgsODUuMSw3OS41eiBNODMuMiw3OWwtMC40LDAuMSYjeEE7bC0wLjMtMC44bDAuNC0wLjFjMC4zLTAuMSwwLjYtMC4yLDAuOCwwLjFDODMuOCw3OC43LDgzLjUsNzguOSw4My4yLDc5eiI+PC9wYXRoPjxwYXRoIGQ9Ik04NS43LDc4LjRjMC45LDAsMS41LTAuNCwxLjcsMGMwLjEsMC4yLTAuMSwwLjUtMC4zLDAuNmMtMC4zLDAuMi0wLjYsMC4xLTAuOC0wLjJsLTAuOSwwLjRjMC40LDAuOSwxLjIsMC44LDIsMC41JiN4QTtjMC44LTAuMywxLjMtMSwxLTEuN2MtMC40LTAuOS0xLjItMC42LTEuOC0wLjVjLTAuMywwLTAuNiwwLjEtMC43LTAuMWMtMC4xLTAuMiwwLTAuNCwwLjMtMC41YzAuMi0wLjEsMC4zLTAuMSwwLjQtMC4xJiN4QTtjMC4xLDAsMC4yLDAuMSwwLjMsMC4ybDAuOS0wLjRjLTAuMy0wLjgtMS4xLTAuNy0xLjgtMC40Yy0wLjcsMC4zLTEuMywwLjgtMSwxLjZDODUsNzguMSw4NS4zLDc4LjQsODUuNyw3OC40eiI+PC9wYXRoPjxwb2x5Z29uIHBvaW50cz0iOTAuMiw3OC4yIDg4LjYsNzQuOSA4Ny43LDc1LjMgODkuMyw3OC42ICI+PC9wb2x5Z29uPjxwYXRoIGQ9Ik05Myw3NC42Yy0wLjYtMS4yLTEuNi0xLjItMi43LTAuNkw4OSw3NC43bDEuNywzLjJsMS4zLTAuN0M5My4yLDc2LjYsOTMuNyw3NS44LDkzLDc0LjZ6IE05MS43LDc2LjZsLTAuNCwwLjJsLTEuMS0yJiN4QTtsMC40LTAuMmMwLjUtMC4zLDEuMS0wLjIsMS41LDAuNUM5Mi40LDc1LjgsOTIuMSw3Ni4zLDkxLjcsNzYuNnoiPjwvcGF0aD48cGF0aCBkPSJNOTQuMiw3MS43bC0xLjEsMC42bDAuNiwzLjlsMC45LTAuNUw5NC41LDc1bDEuMy0wLjdsMC42LDAuNWwxLTAuNkw5NC4yLDcxLjd6IE05NC4zLDc0LjJMOTQsNzIuN2wwLDBsMS4yLDEuMSYjeEE7TDk0LjMsNzQuMnoiPjwvcGF0aD48cGF0aCBkPSJNOTkuNSw3MC41Yy0wLjgtMS4xLTEuNy0xLTIuNy0wLjNMOTUuNSw3MWwyLDNsMS4zLTAuOUM5OS44LDcyLjQsMTAwLjIsNzEuNiw5OS41LDcwLjV6IE05OC4zLDcyLjZsLTAuNCwwLjNMOTYuNyw3MSYjeEE7bDAuNC0wLjNjMC41LTAuMywxLjEtMC4zLDEuNSwwLjNDOTksNzEuNyw5OC44LDcyLjMsOTguMyw3Mi42eiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMDQuMyw3MmwtMS4zLTAuOGwtMS44LDMuMmwxLjMsMC44YzEuMSwwLjYsMiwwLjYsMi43LTAuNUMxMDUuOSw3My40LDEwNS40LDcyLjYsMTA0LjMsNzJ6IE0xMDQuMyw3NC4xJiN4QTtjLTAuNCwwLjYtMSwwLjctMS41LDAuNGwtMC40LTAuMmwxLjEtMS45bDAuNCwwLjJDMTA0LjQsNzIuOCwxMDQuNyw3My40LDEwNC4zLDc0LjF6Ij48L3BhdGg+PHBvbHlnb24gcG9pbnRzPSIxMDcuMyw3Ny44IDEwNy43LDc3LjIgMTA2LjEsNzYuMyAxMDYuNSw3NS43IDEwNy45LDc2LjQgMTA4LjIsNzUuOCAxMDYuOCw3NSAxMDcuMiw3NC40IDEwOC43LDc1LjIgMTA5LDc0LjYgJiN4QTsxMDYuNiw3My4zIDEwNC45LDc2LjUgIj48L3BvbHlnb24+PHBhdGggZD0iTTExMC42LDc5LjVjMC44LDAuNCwxLjcsMC41LDIuMS0wLjRsLTEtMC41Yy0wLjIsMC4zLTAuNSwwLjQtMC44LDAuMmMtMC41LTAuMi0wLjQtMC45LTAuMS0xLjMmI3hBO2MwLjItMC41LDAuNi0xLjEsMS4xLTAuOGMwLjQsMC4yLDAuNSwwLjUsMC40LDAuOGwxLDAuNWMwLjQtMC44LTAuMy0xLjUtMS4xLTEuOWMtMS0wLjUtMS45LTAuMS0yLjQsMSYjeEE7QzEwOS4zLDc4LjEsMTA5LjYsNzksMTEwLjYsNzkuNXoiPjwvcGF0aD48cGF0aCBkPSJNMTE1LjgsNzcuN2MtMS4xLTAuNS0yLTAuMS0yLjUsMWMtMC41LDEuMS0wLjEsMiwxLDIuNWMxLjEsMC41LDIsMC4xLDIuNS0xQzExNy4zLDc5LjEsMTE3LDc4LjEsMTE1LjgsNzcuN3omI3hBOyBNMTE1LjksNzkuOGMtMC4yLDAuNS0wLjYsMS0xLjIsMC44Yy0wLjYtMC4zLTAuNS0wLjktMC4zLTEuNGMwLjItMC41LDAuNi0xLjEsMS4yLTAuOEMxMTYuMiw3OC42LDExNi4xLDc5LjIsMTE1LjksNzkuOHoiPjwvcGF0aD48cG9seWdvbiBwb2ludHM9IjExOS4yLDgzIDExOS40LDgyLjQgMTE3LjksODEuOCAxMTksNzkgMTE4LDc4LjcgMTE2LjcsODIuMSAiPjwvcG9seWdvbj48cG9seWdvbiBwb2ludHM9IjEyMS44LDgwLjEgMTIwLjksNzkuOCAxMTkuNiw4My4yIDEyMC42LDgzLjUgIj48L3BvbHlnb24+PHBvbHlnb24gcG9pbnRzPSIxMjIuMSw4NC4xIDEyMyw4MS4xIDEyMyw4MS4xIDEyMi44LDg0LjMgMTIzLjcsODQuNiAxMjUuNSw4MiAxMjUuNSw4MiAxMjQuNSw4NC45IDEyNS4zLDg1LjIgMTI2LjUsODEuNyAmI3hBOzEyNSw4MS4yIDEyMy43LDgzLjQgMTIzLjcsODMuNCAxMjMuOSw4MC44IDEyMi40LDgwLjMgMTIxLjIsODMuOCAiPjwvcG9seWdvbj48cGF0aCBkPSJNMTI5LjMsODIuNmwtMS4yLTAuM2wtMi40LDMuMWwxLDAuM2wwLjQtMC42bDEuNCwwLjRsMCwwLjdsMS4xLDAuM0wxMjkuMyw4Mi42eiBNMTI3LjYsODQuNGwwLjktMS4zbDAsMGwwLDEuNiYjeEE7TDEyNy42LDg0LjR6Ij48L3BhdGg+PHBvbHlnb24gcG9pbnRzPSIxMTEuMiwxMDEuNCAxMTEuMiwxMDEuNCAxMTEuMiwxMDEuNCAiPjwvcG9seWdvbj48cGF0aCBkPSJNNTkuNiw3MC43djEwLjRjMCwzLjUtMi44LDYuMi02LjIsNi4yYzEtMS4yLDEuNC0yLjMsMS40LTMuNlY2Ni41QzU2LjEsNjguNCw1Ny44LDY5LjgsNTkuNiw3MC43eiI+PC9wYXRoPjxwYXRoIGQ9Ik01My40LDY1LjFWODRjMCwzLjUtMi44LDYuMi02LjIsNi4yYzAsMCwwLDAsMCwwYzEtMS4yLDEuNC0yLjMsMS40LTMuNlY2NS42bDQuNy0yLjJ2MGwwLDBMNTMuNCw2NS4xeiI+PC9wYXRoPjxwYXRoIGQ9Ik05NS43LDEwOC4xYy0wLjEtMC4yLTAuMy0wLjMtMC41LTAuNGwtMi42LTUuNGMwLjMtMC40LDAuNS0wLjgsMC41LTEuMmMwLTAuMiwwLTAuMy0wLjEtMC41Yy0wLjMtMC42LTAuOC0wLjgtMS41LTAuNiYjeEE7bC0wLjEtMC4zYzAuNC0wLjUsMC41LTEuMSwwLjMtMS41Yy0wLjItMC4zLTAuNC0wLjQtMC43LTAuNmMwLjQtMC42LDAuOS0xLjQsMC45LTIuOWMwLTAuNS0wLjItMS0wLjMtMS41Yy0wLjMtMS4yLTAuNC0yLTAuMi0zJiN4QTtjLTEuNSwwLjMtMi40LDEuMi0yLjksMS45Yy0wLjItMC42LTAuMi0xLTAuMi0xYy0xLjMsMC44LTIuNCwyLjEtMi42LDMuNWMtMC41LDMuMywwLjgsNC4zLDEuNSw0LjljLTAuMiwwLjQtMC4xLDAuNywwLjEsMS4xJiN4QTtjMC4yLDAuMywwLjYsMC41LDEuMiwwLjVjMCwwLDAuMSwwLDAuMSwwYzAuMSwwLDAuMSwwLDAuMiwwbDAuMiwwLjNjLTAuNSwwLjUtMC42LDEuMS0wLjMsMS42YzAuMiwwLjMsMC42LDAuNSwxLjIsMC41JiN4QTtjMC4xLDAsMC4zLDAsMC40LTAuMWwzLjIsNS4xYzAsMC4xLDAsMC4xLDAsMC4yYzAsMC4zLDAuMSwwLjYsMC4zLDAuOWMwLjIsMC4yLDAuNSwwLjQsMC44LDAuNGgwLjFjMC4zLDAsMC42LTAuMSwwLjgtMC4zJiN4QTtjMC4zLTAuMiwwLjQtMC42LDAuNC0wLjlDOTYsMTA4LjcsOTUuOSwxMDguNCw5NS43LDEwOC4xeiBNODYuNSw5Ny4yYy0wLjMtMC43LTAuNC0zLjcsMS40LTQuOGMtMC4xLDEuNiwwLjIsMi4zLDAuMiwyLjMmI3hBO3MwLjUtMi4xLDIuMi0zLjJjMC4xLTAuMSwwLjMtMC4xLDAuNC0wLjJjLTAuNSwxLjksMS4xLDIuOSwwLjIsNS4xYy0wLjMsMC43LTEuNSwxLTEuNy0xLjdjLTAuMiwwLjItMC43LDIuMiwwLjksMy4zJiN4QTtjLTAuMywwLjMtMC44LDAuNS0xLjEsMC4zYy0xLjctMS4zLTEuNS00LTEuNS00cy0xLjIsMy4xLDEuMiw0LjdDODcuNCw5OS4zLDg2LjgsOTcuOSw4Ni41LDk3LjJ6IE04OC45LDEwMC41JiN4QTtjLTAuNSwwLjEtMC44LDAtMC45LTAuMmMtMC4xLTAuMi0wLjEtMC40LDAtMC43YzAuMiwwLDAuOSwwLDEuNS0wLjRjMC42LTAuMywwLjktMC45LDEtMS4xYzAuMywwLDAuNCwwLjEsMC42LDAuMyYjeEE7YzAuMSwwLjIsMCwwLjYtMC40LDAuOWMtMC4yLDAuMy0wLjUsMC41LTAuOSwwLjdDODkuNSwxMDAuNCw4OS4yLDEwMC41LDg4LjksMTAwLjV6IE05MS4yLDEwMS4xYy0wLjIsMC4yLTAuNCwwLjMtMC42LDAuNCYjeEE7Yy0wLjIsMC4xLTAuNSwwLjItMC43LDAuM2wtMC40LTAuN2MwLjMtMC4xLDAuNS0wLjIsMC44LTAuM2MwLjMtMC4xLDAuNS0wLjMsMC43LTAuNUw5MS4yLDEwMS4xeiBNOTAuMywxMDNMOTAuMywxMDMmI3hBO2MtMC4xLDAtMC4yLDAtMC4zLDBjLTAuNCwwLTAuNywwLTAuOC0wLjJjMC0wLjEtMC4xLTAuMi0wLjEtMC4zYzAtMC4xLDAtMC4zLDAuMi0wLjRsMC4zLDAuNWwwLDBjMCwwLDAuNC0wLjEsMC41LTAuMSYjeEE7YzAuMy0wLjEsMC41LTAuMiwwLjctMC4zYzAuNi0wLjMsMS0wLjgsMS0wLjhsMCwwdjBsLTAuMi0wLjVjMCwwLDAuMSwwLDAuMSwwYzAuMiwwLDAuNCwwLjEsMC41LDAuM2MwLjEsMC4yLDAsMC41LTAuMywwLjgmI3hBO2MwLDAuMS0wLjEsMC4xLTAuMSwwLjJjLTAuMSwwLjEtMC4xLDAuMS0wLjIsMC4yYy0wLjIsMC4xLTAuNCwwLjMtMC42LDAuNGMtMC4yLDAuMS0wLjUsMC4yLTAuNywwLjMmI3hBO0M5MC41LDEwMi45LDkwLjQsMTAzLDkwLjMsMTAzeiBNOTMuOSwxMDguMWwtMi44LTQuNWMwLjItMC4xLDAuNC0wLjIsMC42LTAuM2MwLjItMC4xLDAuNC0wLjIsMC41LTAuM2wyLjIsNC44JiN4QTtDOTQuMiwxMDcuOCw5NC4xLDEwNy45LDkzLjksMTA4LjFDOTMuOSwxMDgsOTMuOSwxMDguMSw5My45LDEwOC4xeiBNOTUuMSwxMDkuNGMtMC4xLDAuMS0wLjMsMC4yLTAuNCwwLjFjMCwwLDAsMCwwLDAmI3hBO2MtMC4xLDAtMC4zLTAuMS0wLjQtMC4ydjBjMCwwLDAsMCwwLDB2MGwwLDBjLTAuMS0wLjEtMC4xLTAuMi0wLjEtMC4zYzAtMC4xLDAtMC4yLDAuMS0wLjNjMC0wLjEsMC4xLTAuMSwwLjEtMC4yJiN4QTtjMC4xLTAuMSwwLjMtMC4xLDAuNC0wLjFoMC4xYzAuMSwwLDAuMSwwLDAuMiwwLjFsMCwwYzAuMSwwLDAuMSwwLjEsMC4xLDAuMWMwLDAsMC4xLDAuMSwwLjEsMC4xJiN4QTtDOTUuNCwxMDguOSw5NS4zLDEwOS4yLDk1LjEsMTA5LjR6Ij48L3BhdGg+PHBhdGggZD0iTTExMy44LDEwMC41TDExMy44LDEwMC41YzAuMi0wLjEsMC4zLTAuMywwLjQtMC40YzAtMC4xLDAtMC4xLDAtMC4yYzAuMS0wLjEsMC4yLTAuMywwLjEtMC42Yy0wLjEtMC4zLTAuNC0wLjMtMC43LTAuMyYjeEE7bC0wLjEsMGMwLTAuMS0wLjEtMC4xLTAuMi0wLjFjLTAuMS0wLjEtMC40LDAtMC43LDBjLTEsMC4yLTEuNSwwLjgtMS43LDEuMWMtMC4xLDAuMS0wLjEsMC4yLTAuMywwLjNjLTAuMiwwLjItMC40LDAuNy0wLjQsMC45JiN4QTtjMCwwLDAsMCwwLDAuMWwtMC4xLDBjLTAuMywwLjEtMC41LDAuMi0wLjYsMC4zYy0wLjEsMC4xLTAuMiwwLjEtMC40LDAuMmMtMC4yLDAuMS0wLjQsMC4yLTAuNSwwLjRjLTAuMywwLjEtMC44LDAuMy0xLjEsMC4zJiN4QTtjLTAuMSwwLTAuMiwwLjEtMC4zLDAuMWMtMC4zLDAuMS0wLjQsMC4yLTAuNCwwLjJjLTAuMS0wLjEtMC4yLTAuNy0wLjItMWMwLTAuMy0wLjEtMC41LTAuMi0wLjhjMC4yLDAsMC4zLDAsMC41LDAuMSYjeEE7YzAuMSwwLDAuMiwwLDAuMywwYzAuMywwLjEsMC42LDAsMC44LTAuMWMwLjIsMC4zLDAuNiwwLjQsMSwwLjJjMC4yLTAuMSwwLjQtMC4yLDAuNS0wLjVjMC4xLTAuMiwwLjEtMC41LDAtMC43JiN4QTtjLTAuMS0wLjItMC4zLTAuNC0wLjUtMC40Yy0wLjIsMC0wLjQsMC0wLjYsMC4xYy0wLjEsMC0wLjIsMC4xLTAuMiwwLjFjMC0wLjEtMC4xLTAuMS0wLjItMC4yYy0wLjEtMC4xLTAuMy0wLjItMC4zLTAuMyYjeEE7YzAuMi0wLjEsMC41LTAuMiwwLjYtMC4zYzAuMS0wLjEsMC4yLTAuMiwwLjMtMC4zYzAuMS0wLjEsMC4xLTAuMSwwLjItMC4yYzAsMCwwLDAsMCwwYzAuNiwwLjIsMS40LTAuMSwxLjgtMC42JiN4QTtjMC4xLTAuMiwwLjQtMC43LDAuNC0xYzAuMS0wLjIsMC4zLTAuNCwwLjItMC42Yy0wLjEtMC4xLTAuMS0wLjEtMC4zLTAuMWMtMC4xLDAtMC4yLDAtMC4zLDBsLTAuMiwwYy0wLjUsMC4xLTEuMiwwLjEtMS42LDAuNCYjeEE7Yy0wLjMsMC4yLTAuNSwwLjQtMC42LDAuN2MtMC4xLDAtMC4yLDAtMC4zLDBjLTAuMSwwLTAuMiwwLTAuMy0wLjFoMGMtMC4xLDAtMC40LTAuMS0wLjYtMC4yYy0wLjItMC4xLTAuMy0wLjItMC40LTAuMyYjeEE7YzAsMC0wLjEtMC4xLTAuMS0wLjFjMC40LTAuMiwwLjYtMC41LDAuOC0wLjhjMC4yLDAuMSwwLjQsMC4xLDAuNiwwYzAuMy0wLjEsMC41LTAuMiwwLjctMC41YzAuMi0wLjIsMC4yLTAuNSwwLjEtMC43JiN4QTtjLTAuMS0wLjMtMC4yLTAuNC0wLjUtMC41Yy0wLjItMC4xLTAuNC0wLjEtMC43LDBjLTAuMywwLjEtMC41LDAuMi0wLjYsMC40YzAsMC4xLTAuMSwwLjEtMC4xLDAuMmMtMC4zLDAtMC42LDAtMC44LDAuMSYjeEE7bC0wLjMsMC4xYy0wLjQsMC4xLTAuNywwLjEtMS4yLDAuMWwtMC4xLDBjLTAuNy0wLjEtMS4zLTAuMi0yLjIsMC4yYy0wLjgsMC40LTEuMiwxLTEuNSwxLjhsMCwwLjFjMCwwLDAsMC4xLDAsMC4xJiN4QTtjLTAuMiwwLjQtMC4zLDEuMywwLDEuOWMwLjMsMC43LDEuNSwwLjIsMS41LDAuMmwwLDBjMC4xLDAuMiwwLjIsMC4zLDAuMiwwLjRjMCwwLDAsMCwwLDAuMWMwLjEsMC4xLDAuMSwwLjMsMC4yLDAuNWwwLDAmI3hBO2MwLDAuMSwwLDAuMSwwLDAuMWwwLjMsMC44YzAuMSwwLjMsMC4zLDAuNiwwLjQsMWwwLjEsMC4yYzAuMSwwLjIsMC4xLDAuMywwLjEsMC40YzAsMC4xLDAuMSwwLjMsMC4yLDAuNSYjeEE7YzAuMywwLjksMC43LDIuMSwxLjQsMi44YzAuMywwLjMsMC43LDAuNSwxLjEsMC41YzAuMSwwLDAuMiwwLDAuMywwYzAuNC0wLjEsMC43LTAuMywwLjgtMC40YzAuNi0wLjQsMS45LTEuMiwyLjUtMS41JiN4QTtjMC4xLDAuMSwwLjIsMCwwLjUtMC4xYzAuMS0wLjEsMC4zLTAuMiwwLjQtMC4zYzAuMS0wLjEsMC4zLTAuMiwwLjQtMC4zYzAuMS0wLjEsMC4xLTAuMSwwLjItMC4yYzAsMCwwLjEtMC4xLDAuMi0wLjImI3hBO2MwLjEtMC4xLDAuMi0wLjEsMC4yLTAuMmMwLjEsMCwwLjItMC4xLDAuMy0wLjFjMC4xLDAsMC4xLDAsMC4yLTAuMWMwLjQtMC4xLDAuNy0wLjMsMS0wLjZjMC4xLTAuMSwwLjMtMC40LDAuNS0wLjcmI3hBO2MwLjEtMC4xLDAuMi0wLjIsMC4zLTAuM2MwLjEtMC4xLDAuMy0wLjMsMC40LTAuNWMwLTAuMSwwLTAuMy0wLjEtMC40QzExNCwxMDAuNiwxMTMuOSwxMDAuNSwxMTMuOCwxMDAuNXogTTEwOC4yLDEwMC40JiN4QTtDMTA4LjIsMTAwLjQsMTA4LjIsMTAwLjMsMTA4LjIsMTAwLjRjMC4xLTAuMSwwLjEtMC4yLDAuMS0wLjJjMCwwLDAuMSwwLDAuMS0wLjFjMC4xLDAsMC4yLTAuMSwwLjMtMC4xYzAsMCwwLDAsMC4xLDAmI3hBO2MwLjEsMCwwLjEsMCwwLjEsMC4xYzAsMCwwLDAuMSwwLDAuMmMtMC4xLDAuMS0wLjEsMC4yLTAuMywwLjNjLTAuMiwwLjEtMC40LDAtMC40LTAuMUMxMDguMiwxMDAuNSwxMDguMiwxMDAuNCwxMDguMiwxMDAuNCYjeEE7TDEwOC4yLDEwMC40eiBNMTA4LjUsOTcuN2MtMC4xLTAuMiwwLjItMC40LDAuNC0wLjZjMC40LTAuMiwxLTAuMywxLjQtMC4zbDAuMSwwbDAsMGwwLDBjMCwwLjItMC4yLDAuNi0wLjMsMC43JiN4QTtjLTAuMywwLjMtMC45LDAuNS0xLjMsMC40YzAsMC0wLjEsMC0wLjEtMC4xYzAsMCwwLDAsMCwwQzEwOC41LDk3LjksMTA4LjUsOTcuOCwxMDguNSw5Ny43QzEwOC41LDk3LjgsMTA4LjUsOTcuOCwxMDguNSw5Ny43JiN4QTtDMTA4LjUsOTcuNywxMDguNSw5Ny43LDEwOC41LDk3Ljd6IE0xMDcsOTUuMWMwLDAsMC0wLjEsMC0wLjFjMCwwLDAtMC4xLDAuMS0wLjFjMC4xLTAuMSwwLjItMC4yLDAuMy0wLjJjMC4yLDAsMC4zLDAsMC40LDAmI3hBO2MwLjEsMCwwLjEsMC4xLDAuMSwwLjFjMCwwLjEsMCwwLjItMC4xLDAuM2MtMC4xLDAuMS0wLjIsMC4yLTAuNCwwLjJjLTAuMSwwLTAuMywwLTAuNCwwYzAsMC0wLjEtMC4xLTAuMS0wLjEmI3hBO0MxMDcsOTUuMiwxMDcsOTUuMiwxMDcsOTUuMUMxMDcsOTUuMSwxMDcsOTUuMSwxMDcsOTUuMXogTTEwNy42LDEwMGMwLjEsMCwwLjEsMC4xLDAuMiwwLjFjMCwwLjEsMCwwLjEsMCwwLjJjMCwwLDAsMCwwLDAmI3hBO2MtMC4xLDAuMS0wLjQsMC4yLTAuNiwwLjJjLTAuMSwwLTAuMiwwLTAuMywwYy0wLjMsMC0wLjUsMC0wLjctMC4ybC0wLjItMC43YzAuMSwwLjEsMC4yLDAuMiwwLjMsMC4zYzAuMSwwLjEsMC4zLDAuMiwwLjQsMC4zJiN4QTtjMC4xLDAsMC4yLDAuMSwwLjIsMC4xYzAuMSwwLDAuMiwwLDAuMywwYzAuMS0wLjEsMC4xLTAuMSwwLTAuMmMwLTAuMS0wLjEtMC4xLTAuMi0wLjFjMCwwLDAsMCwwLDBsLTAuMSwwYzAsMC0wLjEsMC0wLjEsMCYjeEE7Yy0wLjEsMC0wLjItMC4xLTAuMy0wLjJjMCwwLTAuMS0wLjEtMC4xLTAuMWMtMC4zLTAuMy0wLjQtMC42LTAuNi0wLjljMCwwLTAuMS0wLjEtMC4xLTAuMWMtMC4xLTAuMi0wLjEtMC4zLTAuMS0wLjQmI3hBO2MwLjQsMC4zLDAuNSwwLjQsMC43LDAuNGMwLDAsMC4xLDAsMC4xLDAuMWMwLjEsMC4xLDAuNCwwLjMsMC41LDAuNmMwLDAsMC4xLDAuMSwwLjEsMC4xYzAsMCwwLjEsMC4xLDAuMSwwLjEmI3hBO0MxMDcuMSw5OS43LDEwNy40LDk5LjgsMTA3LjYsMTAweiBNMTA2LjUsOTcuNWMwLjMsMC4xLDAuNiwwLjIsMC44LDAuM2wwLDBjMC4xLDAsMC4yLDAsMC40LDBjMC4xLDAsMC4zLDAsMC40LDAuMWwwLDAuMSYjeEE7YzAsMCwwLjEsMC4xLDAuMSwwLjFjMCwwLDAsMC4xLTAuMSwwLjFjLTAuMSwwLjEtMC4xLDAuMS0wLjIsMC4yYy0wLjEsMC4xLTAuNCwwLjMtMC43LDAuM2MtMC4xLTAuMS0wLjItMC4zLTAuMy0wLjQmI3hBO2MwLjEsMCwwLjEsMCwwLjEsMGMwLDAsMCwwLDAsMGMwLjEsMCwwLjItMC4xLDAuMi0wLjFjMC0wLjEsMC0wLjEsMC0wLjJjMC0wLjEtMC4xLTAuMS0wLjItMC4xbDAsMGgtMC4xYy0wLjEsMC0wLjIsMC0wLjMtMC4xJiN4QTtjMCwwLTAuMSwwLTAuMSwwYy0wLjMtMC4xLTAuOS0wLjUtMS4xLTAuN2MwLDAsMCwwLDAsMGMwLjItMC4xLDAuMy0wLjEsMC40LTAuMmMwLjEsMC4xLDAuMiwwLjIsMC4zLDAuMiYjeEE7QzEwNi4xLDk3LjMsMTA2LjMsOTcuNCwxMDYuNSw5Ny41eiBNMTAyLjQsOThjMCwwLTAuMywwLjMtMC40LDAuM2MwLDAtMC4yLDAuMi0wLjUsMC41Yy0wLjcsMC4zLTEtMC45LTAuNi0xLjZsMC0wLjEmI3hBO2MwLjItMC43LDAuNS0xLjIsMS4yLTEuNWMwLjQtMC4yLDAuNy0wLjMsMS4xLTAuM2MwLjIsMCwwLjQsMCwwLjcsMC4xbDAuMSwwYzAuNiwwLjEsMSwwLDEuNC0wLjFjMC4xLDAsMC4yLDAsMC4zLDAmI3hBO2MwLjIsMCwwLjUtMC4xLDAuNy0wLjFjMCwwLjEsMC4xLDAuMiwwLjEsMC4zYy0wLjEsMC4yLTAuNCwwLjYtMC45LDAuOGMtMC4yLDAuMS0xLDAuMy0xLjEsMC40Yy0wLjEsMC0wLjYsMC4yLTAuNywwLjImI3hBO0MxMDMuNSw5Ny4yLDEwMi40LDk4LDEwMi40LDk4eiBNMTA2LjgsMTA1LjdjLTAuMywwLjItMC45LDAuNi0xLjUsMGMtMC42LTAuNi0xLTEuOC0xLjMtMi42bDAsMGMtMC4xLTAuMi0wLjEtMC40LTAuMi0wLjUmI3hBO2MwLTAuMS0wLjEtMC4zLTAuMi0wLjZjLTAuMi0wLjUtMC41LTEuMi0wLjYtMS40YzAsMCwwLTAuMS0wLjEtMC4ybC0wLjItMC40Yy0wLjEtMC4zLTAuMy0wLjYtMC40LTAuOWMwLjMtMC4zLDEuNC0xLjIsMi40LTEuNCYjeEE7YzAuMSwwLjEsMC4xLDAuMywwLjIsMC42YzAsMC4yLDAuMSwwLjUsMC4yLDAuOGMwLjEsMC4zLDAuMiwwLjYsMC4zLDFsMC4yLDAuNmMwLjEsMC40LDAuMiwwLjksMC4zLDEuMyYjeEE7YzAuMSwwLjcsMC4yLDEuMSwwLjMsMS4yYzAuMywwLjMsMC43LDAuMSwxLjEsMGMwLjEsMCwwLjEtMC4xLDAuMi0wLjFjMC4yLDAsMC41LTAuMSwwLjktMC4zYzAsMCwwLDAuMSwwLjEsMC4xJiN4QTtjMC4xLDAuMSwwLjIsMC4zLDAuMiwwLjRjMC4xLDAuMiwwLjMsMC43LDAuNSwxQzEwOC43LDEwNC42LDEwNy41LDEwNS4zLDEwNi44LDEwNS43eiBNMTEwLDEwNGMtMC4xLDAtMC4xLDAuMS0wLjIsMC4xJiN4QTtjMCwwLDAsMC0wLjEsMGMtMC4xLTAuMi0wLjQtMC42LTAuNS0xLjFjLTAuMS0wLjItMC4yLTAuNC0wLjMtMC41YzAsMC0wLjEtMC4xLTAuMS0wLjFjMCwwLDAuMSwwLDAuMS0wLjFsMCwwJiN4QTtjMCwwLDAuMSwwLDAuMS0wLjFsMC4xLDBjMC4xLDAuMSwwLjEsMC4zLDAuMiwwLjRjMC4xLDAuMywwLjQsMC45LDAuNiwxLjJjMCwwLDAsMCwwLDBDMTEwLjEsMTAzLjksMTEwLjEsMTA0LDExMCwxMDR6JiN4QTsgTTExMC44LDEwMy40Yy0wLjEsMC0wLjEsMC4xLTAuMiwwLjFjMCwwLDAsMCwwLDBjLTAuMS0wLjItMC40LTAuNy0wLjYtMS4yYy0wLjEtMC4yLTAuMS0wLjMtMC4yLTAuNGMwLDAsMCwwLDAuMSwwbDAsMCYjeEE7YzAsMCwwLjEsMCwwLjEsMGwwLjItMC4xYzAsMCwwLDAsMC4yLDAuMmMwLjMsMC4zLDAuNCwwLjUsMC42LDAuOGMwLjEsMC4yLDAuMSwwLjMsMC4xLDAuM0wxMTAuOCwxMDMuNHogTTExMy43LDEwMC4xbC0wLjEsMC4xJiN4QTtjLTAuMSwwLjEtMC4xLDAuMS0wLjQsMC4yYy0wLjQsMC4zLTAuOSwxLTAuOSwxLjJjMCwwLjEsMCwwLjIsMC4xLDAuMmMwLjEsMC4xLDAuMSwwLjEsMC4yLDAuMWMwLjEsMCwwLjMtMC4yLDAuNC0wLjQmI3hBO2MwLDAsMCwwLDAsMGMwLjMtMC4zLDAuNS0wLjUsMC43LTAuNWMwLDAsMC4xLDAsMC4xLDBsMCwwYzAsMC4xLTAuMSwwLjEtMC4yLDAuMmMtMC4xLDAuMS0wLjMsMC4yLTAuNCwwLjRsMCwwJiN4QTtjLTAuMSwwLjEtMC4zLDAuNS0wLjQsMC42Yy0wLjMsMC4zLTAuNSwwLjQtMC44LDAuNWwtMC4yLDBjMCwwLTAuMSwwLTAuMiwwLjFjMC0wLjEtMC4xLTAuMi0wLjItMC4zYy0wLjItMC40LTAuMy0wLjYtMC42LTAuOSYjeEE7YzAtMC4xLTAuMS0wLjEtMC4yLTAuMmMwLDAsMC4xLTAuNiwwLjctMS4zYzAuNS0wLjYsMS4zLTAuOSwxLjUtMC44YzAsMCwwLDAsMCwwYy0wLjQsMC4xLTAuNywwLjMtMC45LDAuNmwtMC4xLDAuMSYjeEE7Yy0wLjEsMC4xLTAuMiwwLjItMC4zLDAuM2MtMC4xLDAuMi0wLjEsMC4yLTAuMSwwLjNjMCwwLDAuMSwwLjEsMC4xLDAuMWgwYzAuMSwwLDAuMSwwLDAuMS0wLjFjMC4zLTAuNCwxLjEtMS4xLDEuNi0xLjJsMC4xLDAmI3hBO2MwLjMtMC4xLDAuNCwwLjEsMC40LDAuMWMtMC40LDAtMC44LDAuMy0xLjEsMC42Yy0wLjEsMC0wLjEsMC4xLTAuMSwwLjFjLTAuMSwwLjEtMC4zLDAuMy0wLjQsMC40YzAsMCwwLDAtMC4xLDAuMWwwLDAuMSYjeEE7Yy0wLjEsMC4xLDAsMC4xLDAsMC4yYzAuMSwwLDAuMiwwLDAuMiwwbDAtMC4xYzAsMCwwLTAuMSwwLTAuMWMwLjEtMC4xLDAuMy0wLjMsMC4zLTAuM2MwLDAsMC4xLTAuMSwwLjEtMC4xbDAsMCYjeEE7YzAuMi0wLjEsMC41LTAuNCwwLjgtMC41QzExMy44LDk5LjgsMTEzLjgsMTAwLDExMy43LDEwMC4xeiI+PC9wYXRoPjxwb2x5Z29uIHBvaW50cz0iNzQuMywxMTMuNyA3NC45LDExMy40IDc0LjMsMTEyIDc1LDExMS43IDc1LjYsMTEzLjMgNzYuMiwxMTMgNzUuMiwxMTAuNiA3MiwxMTIgNzMsMTE0LjQgNzMuNiwxMTQuMSA3MywxMTIuNiAmI3hBOzczLjcsMTEyLjMgIj48L3BvbHlnb24+PHBhdGggZD0iTTc2LjEsMTE1LjhjMC0wLjMtMC4xLTAuNiwwLjEtMC43YzAuMi0wLjEsMC40LDAsMC41LDAuMmMwLjEsMC4xLDAuMSwwLjMsMC4xLDAuNGMwLDAuMS0wLjEsMC4yLTAuMiwwLjJsMC40LDAuOCYjeEE7YzAuOC0wLjMsMC43LTEuMSwwLjQtMS43Yy0wLjMtMC42LTAuOC0xLjItMS42LTAuOGMtMC4zLDAuMi0wLjYsMC41LTAuNSwwLjhjMCwwLjgsMC40LDEuNCwwLDEuNmMtMC4yLDAuMS0wLjQtMC4xLTAuNS0wLjMmI3hBO2MtMC4xLTAuMy0wLjEtMC42LDAuMi0wLjdsLTAuNC0wLjhjLTAuOSwwLjQtMC44LDEuMi0wLjQsMS45YzAuMywwLjcsMSwxLjIsMS42LDAuOUM3Ni41LDExNy4yLDc2LjIsMTE2LjQsNzYuMSwxMTUuOHoiPjwvcGF0aD48cG9seWdvbiBwb2ludHM9Ijc5LjEsMTIwIDc5LjcsMTE5LjcgNzguMiwxMTcgNzcuNiwxMTcuNCA3OC4xLDExOC4zIDc1LjYsMTE5LjcgNzYuMSwxMjAuNSA3OC42LDExOS4xICI+PC9wb2x5Z29uPjxwYXRoIGQ9Ik04MS44LDEyMy4xbC0wLjUtMC44bC0xLjgsMS4yYy0wLjQsMC4yLTAuNywwLjItMS0wLjJjLTAuMi0wLjQtMC4xLTAuNywwLjItMWwxLjgtMS4ybC0wLjUtMC44bC0xLjksMS4yJiN4QTtjLTAuOCwwLjYtMC43LDEuNC0wLjMsMi4xYzAuNSwwLjcsMS4yLDEuMSwyLDAuNkw4MS44LDEyMy4xeiI+PC9wYXRoPjxwYXRoIGQ9Ik04My4zLDEyNS4xbC0wLjktMS4xbC0yLjgsMi4xbDAuOSwxLjJjMC43LDAuOSwxLjUsMS4zLDIuNiwwLjVDODQuMSwxMjYuOSw4NCwxMjYsODMuMywxMjUuMXogTTgyLjUsMTI2LjkmI3hBO2MtMC42LDAuNC0xLjIsMC4zLTEuNS0wLjFsLTAuMy0wLjNsMS43LTEuM2wwLjMsMC4zQzgzLDEyNS45LDgzLDEyNi41LDgyLjUsMTI2Ljl6Ij48L3BhdGg+PHBvbHlnb24gcG9pbnRzPSI4NS4xLDEyNy4zIDgyLjQsMTI5LjYgODMsMTMwLjMgODUuNywxMjguMSAiPjwvcG9seWdvbj48cGF0aCBkPSJNODcuMSwxMjkuN2wtMy41LDEuNGwwLjYsMC43bDAuNy0wLjNsMC45LDFsLTAuNCwwLjZsMC43LDAuOGwxLjctMy40TDg3LjEsMTI5Ljd6IE04Ni45LDEzMC41bC0wLjgsMS4zbC0wLjYtMC43JiN4QTtMODYuOSwxMzAuNUw4Ni45LDEzMC41eiI+PC9wYXRoPjxwb2x5Z29uIHBvaW50cz0iOTIuNiwxMzUuMyA5MC4yLDEzNy45IDkyLDEzOS42IDkyLjUsMTM5LjEgOTEuMywxMzggOTMuMywxMzUuOSAiPjwvcG9seWdvbj48cGF0aCBkPSJNOTUuNiwxNDAuM2MtMC4yLDAuNC0wLjUsMC42LTAuOSwwLjRjLTAuNC0wLjItMC41LTAuNi0wLjMtMWwxLTJsLTAuOC0wLjRsLTEsMmMtMC40LDAuOSwwLjEsMS42LDAuOCwyJiN4QTtjMC44LDAuNCwxLjYsMC40LDIuMS0wLjVsMS0ybC0wLjgtMC40TDk1LjYsMTQwLjN6Ij48L3BhdGg+PHBhdGggZD0iTTk5LjMsMTQxLjljLTAuNSwwLTAuNy0wLjYtMC43LTEuMWMwLTAuNSwwLjEtMS4yLDAuNi0xLjJjMC40LDAsMC42LDAuMiwwLjcsMC41bDEsMGMwLTAuOS0wLjgtMS4yLTEuNy0xLjEmI3hBO2MtMSwwLjEtMS42LDAuNy0xLjUsMS45YzAsMS4yLDAuNiwxLjgsMS43LDEuOGMwLjgsMCwxLjYtMC40LDEuNi0xLjNsLTEsMEM5OS45LDE0MS42LDk5LjcsMTQxLjgsOTkuMywxNDEuOXoiPjwvcGF0aD48cG9seWdvbiBwb2ludHM9IjEwMywxMzcuNiAxMDMuNywxMzguOCAxMDIuNywxMzkuNCAxMDIsMTM4LjIgMTAxLjIsMTM4LjYgMTAzLDE0MS43IDEwMy44LDE0MS4yIDEwMywxNDAgMTA0LDEzOS40ICYjeEE7MTA0LjgsMTQwLjcgMTA1LjYsMTQwLjIgMTAzLjgsMTM3LjEgIj48L3BvbHlnb24+PHBhdGggZD0iTTEwNS44LDEzNS4xbC0wLjgsMC44bDEuNCwzLjVsMC43LTAuNmwtMC4zLTAuN2wxLTAuOWwwLjYsMC40bDAuOC0wLjdMMTA1LjgsMTM1LjF6IE0xMDYuNCwxMzcuNGwtMC43LTEuNHYwbDEuMywwLjgmI3hBO0wxMDYuNCwxMzcuNHoiPjwvcGF0aD48cG9seWdvbiBwb2ludHM9IjExMi42LDEyOC44IDExMi4xLDEyOC40IDExMC4xLDEzMC43IDExMC42LDEzMS4xIDExMS4zLDEzMC40IDExMy41LDEzMi4zIDExNC4xLDEzMS41IDExMS45LDEyOS42ICI+PC9wb2x5Z29uPjxwYXRoIGQ9Ik0xMTUuOCwxMjguM2MwLjIsMC4xLDAuNCwwLjMsMC43LDAuNGwwLjYtMC44Yy0wLjMtMC4xLTAuNS0wLjMtMC44LTAuNGMtMC41LTAuMy0wLjgtMC40LTEuMiwwLjFsMCwwJiN4QTtjMC4yLTAuNCwwLjMtMC45LTAuMS0xLjJjLTAuNi0wLjUtMS4yLDAtMS41LDAuNWwtMSwxLjJsMi44LDIuMmwwLjYtMC43bC0xLjEtMC45bDAuMi0wLjNDMTE1LjMsMTI4LDExNS40LDEyOC4xLDExNS44LDEyOC4zeiYjeEE7IE0xMTQuNCwxMjcuOWwtMC4yLDAuM2wtMC42LTAuNWwwLjItMC4zYzAuMi0wLjIsMC40LTAuNCwwLjctMC4yQzExNC44LDEyNy40LDExNC42LDEyNy43LDExNC40LDEyNy45eiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMTUuOSwxMjMuNGwtMC43LDAuOWwyLjEsMy4xbDAuNS0wLjhsLTAuNC0wLjZsMC44LTEuMWwwLjcsMC4ybDAuNi0wLjlMMTE1LjksMTIzLjR6IE0xMTcuMSwxMjUuNWwtMC45LTEuMmwwLDAmI3hBO2wxLjQsMC41TDExNy4xLDEyNS41eiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMjAuNiwxMjAuN2MtMC40LTAuMy0wLjktMC4xLTEuMiwwLjJoMGMwLjEtMC40LDAuMS0wLjgtMC4zLTFjLTAuNS0wLjMtMS4xLDAtMS40LDAuNWwtMC44LDEuNGwzLDEuOWwwLjgtMS40JiN4QTtDMTIwLjgsMTIyLjIsMTIxLjUsMTIxLjIsMTIwLjYsMTIwLjd6IE0xMTguOSwxMjEuM2wtMC4zLDAuNGwtMC42LTAuNGwwLjMtMC40YzAuMS0wLjIsMC4zLTAuMywwLjUtMC4xJiN4QTtDMTE5LDEyMC45LDExOSwxMjEuMSwxMTguOSwxMjEuM3ogTTEyMC4xLDEyMmwtMC4zLDAuNWwtMC43LTAuNGwwLjMtMC41YzAuMS0wLjIsMC4zLTAuMiwwLjUtMC4xJiN4QTtDMTIwLjIsMTIxLjYsMTIwLjMsMTIxLjgsMTIwLjEsMTIyeiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMTkuNywxMTYuOGwtMC41LDFsMi41LDIuOGwwLjQtMC44bC0wLjUtMC41bDAuNi0xLjJsMC43LDAuMWwwLjUtMC45TDExOS43LDExNi44eiBNMTIxLjIsMTE4LjhsLTEuMS0xLjFsMCwwbDEuNSwwLjMmI3hBO0wxMjEuMiwxMTguOHoiPjwvcGF0aD48cGF0aCBkPSJNMTIzLjcsMTE0LjFsLTIuMy0xbC0wLjQsMC45bDIuMiwxYzAuMSwwLDAuNSwwLjIsMC4zLDAuNWMtMC4xLDAuMi0wLjQsMC4yLTAuNiwwLjFsLTAuNCwwLjljMC44LDAuNCwxLjMsMC4xLDEuNi0wLjYmI3hBO0MxMjQuNSwxMTUuMSwxMjQuNSwxMTQuNCwxMjMuNywxMTQuMXoiPjwvcGF0aD48cGF0aCBkPSJNMTI2LDExMS4ybDAuNC0xaC0zLjhsLTAuNCwxLjFsMi44LDIuNWwwLjMtMC45bC0wLjYtMC41bDAuNS0xLjNMMTI2LDExMS4yeiBNMTI0LjIsMTEybC0xLjItMXYwbDEuNSwwLjFMMTI0LjIsMTEyeiI+PC9wYXRoPjxwYXRoIGQ9Ik04OS4yLDEzNC4xYy0wLjQsMC0wLjcsMC4zLTAuNywwLjdjMCwwLjQsMC4zLDAuNywwLjcsMC43YzAuNCwwLDAuNy0wLjMsMC43LTAuN0M4OS45LDEzNC40LDg5LjYsMTM0LjEsODkuMiwxMzQuMXoiPjwvcGF0aD48cGF0aCBkPSJNMTA5LjcsMTMzLjdjLTAuNCwwLTAuNywwLjMtMC43LDAuN2MwLDAuNCwwLjMsMC43LDAuNywwLjdzMC43LTAuMywwLjctMC43QzExMC40LDEzNCwxMTAuMSwxMzMuNywxMDkuNywxMzMuN3oiPjwvcGF0aD48L2c+PC9nPjwvZz48Zz48Zz48Zz48cGF0aCBkPSJNMTk5LjgsMzQuNmg3LjNsMC4yLDM5LjJjMCwyLjYsMC45LDQuNSwyLjYsNS43YzEuOCwxLjIsNC4zLDEuOSw3LjUsMS45YzIuNiwwLDQuNi0wLjgsNi4yLTIuMiYjeEE7YzEuNy0xLjUsMi41LTMuOSwyLjUtNy4yVjM0LjZoNS4zdjM4LjVjMCw0LTEuNCw3LjEtNC40LDkuM2MtMi45LDIuMi03LDMuMy0xMi4zLDMuM2MtNS4xLDAtOS0xLjEtMTEuNi0zLjQmI3hBO2MtMi42LTIuMy0yLjktNS0yLjktOS40TDE5OS44LDM0LjZ6Ij48L3BhdGg+PHBhdGggZD0iTTIzOC4zLDQyLjFoNC4zbDIyLjMsMzJ2LTMyaDQuM3Y0M2gtNC4zbC0yMi4zLTMyLjN2MzEuN2gtNC4zVjQyLjF6Ij48L3BhdGg+PHBhdGggZD0iTTI4MC4xLDg0LjZWNDIuMWg1LjZ2NDIuNEgyODAuMXoiPjwvcGF0aD48cGF0aCBkPSJNMzI2LjQsNDIuMWwtMTQuMiw0My40aC0zLjhMMjk0LDQyLjFoNi41TDMxMS4zLDc3bDExLjMtMzQuOUgzMjYuNHoiPjwvcGF0aD48cGF0aCBkPSJNMzU4LjUsNDIuMXY5LjRoLTIuNWMwLTIuNy0wLjgtNC41LTIuNC01LjRjLTEuNi0wLjktNC4zLTEuNC04LjEtMS40aC01LjJ2MTAuOGgxMHYzLjFoLTEwdjIzLjRoNS43JiN4QTtjMy42LDAsNi4xLTAuNSw3LjYtMS41YzEuNi0xLDIuNC0yLjksMi40LTUuN2gyLjV2OS44aC0yMy44VjQyLjFIMzU4LjV6Ij48L3BhdGg+PHBhdGggZD0iTTM2OSw4NC42VjQyLjFoNS4xdjIuN2MxLjctMS4yLDMuNC0yLjEsNS0yLjdjMS43LTAuNiwzLjQtMC45LDUuMi0wLjljNC41LDAsOC4zLDEuNywxMS41LDUuMSYjeEE7YzMuMiwzLjQsNC44LDcuNCw0LjgsMTIuMWMwLDUtMS40LDkuMS00LjIsMTIuNGMtMi44LDMuMi02LjUsNS0xMS4yLDUuM2w3LjgsNC41YzguMyw0LjcsMTQuMiw3LjUsMTgsOC42JiN4QTtjMy42LDEsNS43LDEuNCwxMC42LDEuMWM1LjMsMCw5LjctMi4xLDEzLjYtNmwtMC4xLDIuNGMtNC4xLDUuNC05LjEsNi43LTE5LjEsNi43Yy01LjQsMC0xMC43LTIuNS0xOC45LTYuNSYjeEE7Yy04LjItNC0xNS44LTguNC0yMy0xM3YxMC42SDM2OXogTTM3NC4xLDQ4djIzLjRsMS4zLTIuMWMyLjEsMS41LDMuOSwyLjUsNS4zLDMuMWMxLjUsMC42LDIuOSwwLjksNC4yLDAuOSYjeEE7YzMuMiwwLDUuOC0xLjIsNy44LTMuNWMyLjEtMi40LDMuMS01LjQsMy4xLTkuMmMwLTQuNC0xLjMtOC4yLTQtMTEuNGMtMi43LTMuMi01LjgtNC44LTkuNC00LjhjLTEuNSwwLTMsMC4zLTQuNCwwLjkmI3hBO0MzNzYuNiw0NS44LDM3NS4zLDQ2LjcsMzc0LjEsNDh6Ij48L3BhdGg+PHBhdGggZD0iTTQyNi43LDUwLjdjMC0yLjUtMC41LTQuMi0xLjQtNS4yYy0xLTEuMS0yLjQtMS42LTQuMy0xLjZjLTEuNiwwLTIuOSwwLjQtMy45LDEuMWMtMSwwLjctMS42LDEuOC0xLjYsMy4zJiN4QTtjMCwxLjMsMC41LDIuNSwxLjUsMy42YzEsMS4xLDMuMSwyLjUsNi4zLDQuMmMwLjQsMC4yLDAuOCwwLjUsMS41LDAuOGM3LjgsNC4yLDExLjcsOC43LDExLjcsMTMuNWMwLDQuNS0xLjYsOC4xLTQuNywxMC45JiN4QTtjLTMuMSwyLjgtNy4zLDQuMS0xMi42LDQuMWMtNC40LDAtOC4xLTEuMi0xMS0zLjdjLTIuOS0yLjUtNC40LTUuNS00LjQtOS4xYzAtMy4xLDEtNS43LDMtNy44YzItMi4xLDQuNS0zLjEsNy41LTMuMSYjeEE7YzIuNiwwLDQuOCwwLjYsNi41LDJjMS44LDEuNCwyLjcsMywyLjcsNWMwLDEuNC0wLjUsMi42LTEuNCwzLjRjLTAuOSwwLjgtMi4yLDEuMy0zLjgsMS4zYy0wLjUsMC0wLjksMC0xLjItMC4xJiN4QTtjLTAuMy0wLjEtMC42LTAuMi0wLjktMC40bDAuMS0xLjFjMS4xLTAuMSwxLjktMC41LDIuNi0xLjJjMC43LTAuNywxLTEuNywxLTIuOGMwLTEuMy0wLjUtMi4yLTEuNS0yLjdjLTEtMC41LTIuMy0wLjgtMy45LTAuOCYjeEE7Yy0yLjEsMC0zLjksMC42LTUuMywxLjhjLTEuNCwxLjItMi4xLDMtMi4xLDUuNGMwLDMuMiwxLjMsNS43LDMuOSw3LjdjMi42LDEuOSw1LjcsMi45LDkuMywyLjljMy41LDAsNi40LTAuOSw4LjctMi42JiN4QTtjMi4zLTEuOCwzLjQtNC4yLDMuNC03LjNjMC0xLjktMC41LTMuNS0xLjYtNC45Yy0xLjEtMS40LTMuNC0zLTctNWMtMC40LTAuMi0xLTAuNi0xLjgtMWMtNi41LTMuNy05LjgtNy40LTkuOC0xMS4yJiN4QTtjMC0yLjYsMC45LTQuNywyLjctNi41YzEuOC0xLjgsNC0yLjcsNi41LTIuN2MxLDAsMS45LDAuMSwyLjgsMC40YzAuOCwwLjIsMS44LDAuNiwyLjcsMS4yaDEuOXY4SDQyNi43eiI+PC9wYXRoPjxwYXRoIGQ9Ik00NDUuNyw4NC42VjQyLjFoNS42djQyLjRINDQ1Ljd6Ij48L3BhdGg+PHBhdGggZD0iTTQ2MS44LDg0LjZWNDIuMWgzLjZjMS4yLDAsMi45LTAuMSw1LjItMC4yYzIuMi0wLjEsMy44LTAuMiw0LjgtMC4yYzYsMCwxMC45LDEuOSwxNC43LDUuOWMzLjgsNCw1LjgsOSw1LjgsMTUuMSYjeEE7YzAsNi4zLTIsMTEuNi02LjIsMTUuOGMtNC4xLDQuMi05LjQsNi4zLTE1LjcsNi4zYy0wLjgsMC0yLjMtMC4xLTQuMy0wLjJjLTItMC4xLTMuNi0wLjItNC44LTAuMkg0NjEuOHogTTQ2Ni42LDgwLjUmI3hBO2MxLjMsMC41LDIuNSwwLjgsMy43LDEuMWMxLjIsMC4yLDIuMywwLjQsMy40LDAuNGM1LDAuNCw5LjEtMS4xLDEyLjMtNC43YzMuMi0zLjYsNC44LTguMSw0LjgtMTMuNmMwLTUuNS0xLjYtMTAtNC45LTEzLjcmI3hBO2MtMy4zLTMuNy03LjMtNS4zLTEyLjItNC45Yy0xLDAtMi4xLDAuMS0zLjMsMC40Yy0xLjIsMC4zLTIuNCwwLjYtMy44LDEuMVY4MC41eiI+PC9wYXRoPjxwYXRoIGQ9Ik01MzMuNyw4NC42VjQyLjFoMy42YzEuMiwwLDIuOS0wLjEsNS4yLTAuMmMyLjItMC4xLDMuOC0wLjIsNC44LTAuMmM2LDAsMTAuOSwxLjksMTQuNyw1LjljMy44LDQsNS44LDksNS44LDE1LjEmI3hBO2MwLDYuMy0yLDExLjYtNi4yLDE1LjhjLTQuMSw0LjItOS40LDYuMy0xNS43LDYuM2MtMC44LDAtMi4zLTAuMS00LjMtMC4yYy0yLTAuMS0zLjYtMC4yLTQuOC0wLjJINTMzLjd6IE01MzguNSw4MC41JiN4QTtjMS4zLDAuNSwyLjUsMC44LDMuNywxLjFjMS4yLDAuMiwyLjMsMC40LDMuNCwwLjRjNSwwLjQsOS4xLTEuMSwxMi4zLTQuN2MzLjItMy42LDQuOC04LjEsNC44LTEzLjZjMC01LjUtMS42LTEwLTQuOS0xMy43JiN4QTtjLTMuMy0zLjctNy4zLTUuMy0xMi4yLTQuOWMtMSwwLTIuMSwwLjEtMy4zLDAuNGMtMS4yLDAuMy0yLjQsMC42LTMuOCwxLjFWODAuNXoiPjwvcGF0aD48cGF0aCBkPSJNNDk1LjgsODVsMTUuNS00My4zaDIuNmwxNSw0My4zaC02LjhsLTYuNC0yMC41aC05LjNMNDk5LjMsODVINDk1Ljh6IE01MDcuNSw2MGg2LjlsLTMuMy0xMC44TDUwNy41LDYweiI+PC9wYXRoPjwvZz48L2c+PC9nPjxnPjxnPjxnPjxwYXRoIGQ9Ik0xOTkuOSwxNjMuNFYxMjFoMy42YzEuMiwwLDIuOS0wLjEsNS4yLTAuMmMyLjItMC4xLDMuOC0wLjIsNC44LTAuMmM2LDAsMTAuOSwxLjksMTQuNyw1LjljMy44LDQsNS44LDksNS44LDE1LjEmI3hBO2MwLDYuMy0yLDExLjYtNi4yLDE1LjhjLTQuMSw0LjItOS40LDYuMy0xNS43LDYuM2MtMC44LDAtMi4zLTAuMS00LjMtMC4yYy0yLTAuMS0zLjYtMC4yLTQuOC0wLjJIMTk5Ljl6IE0yMDQuNywxNTkuNCYjeEE7YzEuMywwLjUsMi41LDAuOCwzLjcsMS4xYzEuMiwwLjIsMi4zLDAuNCwzLjQsMC40YzUsMC40LDkuMS0xLjEsMTIuMy00LjdjMy4yLTMuNiw0LjgtOC4xLDQuOC0xMy42YzAtNS41LTEuNi0xMC00LjktMTMuNyYjeEE7Yy0zLjMtMy43LTcuMy01LjMtMTIuMi00LjljLTEsMC0yLjEsMC4xLTMuMywwLjRjLTEuMiwwLjMtMi40LDAuNi0zLjgsMS4xVjE1OS40eiI+PC9wYXRoPjxwYXRoIGQ9Ik0yNjQsMTIxdjkuNGgtMi40YzAtMi43LTAuOC00LjUtMi40LTUuNGMtMS42LTAuOS00LjItMS40LTgtMS40aC01djEwLjhoOS44djMuMWgtOS44djIzLjRoNS41YzMuNSwwLDYtMC41LDcuNS0xLjUmI3hBO2MxLjYtMSwyLjMtMi45LDIuMy01LjdoMi40djkuOGgtMjMuNVYxMjFIMjY0eiI+PC9wYXRoPjwvZz48Zz48cGF0aCBkPSJNMzk4LjksMTIxdjM5LjZoMi4yYzIuOCwwLDYuNC0wLjIsNy45LTAuMmMyLjQsMCw0LjktMy4zLDQuNC03bDMsMC4xdjkuOGgtMjNWMTIxSDM5OC45eiI+PC9wYXRoPjxwYXRoIGQ9Ik00MjUuOSwxNjMuNFYxMjFoNS42djQyLjRINDI1Ljl6Ij48L3BhdGg+PHBhdGggZD0iTTQ0Mi4yLDEyMWgxMC4zbDkuNSwyMC40bDktMjAuNGg5LjV2NDIuNGgtNi44bDAtMzkuNmwtMTMsMjcuNmwtMTQtMjcuNnYzOS42aC00LjVWMTIxeiI+PC9wYXRoPjxwYXRoIGQ9Ik00ODUuMywxNjMuOWwxNS41LTQzLjNoMi42bDE1LDQzLjNoLTYuOGwtNi40LTIwLjVoLTkuM2wtNy4xLDIwLjVINDg1LjN6IE00OTcsMTM4LjloNi45bC0zLjMtMTAuOEw0OTcsMTM4Ljl6Ij48L3BhdGg+PHBhdGggZD0iTTM2MS41LDE2NC43Yy02LjYsMC0xMi0yLjEtMTYuMy02LjJjLTQuMy00LjItNi40LTkuNC02LjQtMTUuOGMwLTYuMSwyLjEtMTEuMyw2LjUtMTUuNWM0LjQtNC4zLDkuNy02LjQsMTUuOS02LjQmI3hBO2M2LjUsMCwxMS45LDIuMSwxNi40LDYuNGM0LjUsNC4zLDYuNyw5LjQsNi43LDE1LjVjMCw2LjItMi4xLDExLjQtNi41LDE1LjZDMzczLjUsMTYyLjUsMzY4LjEsMTY0LjcsMzYxLjUsMTY0Ljd6IE0zNjMuNCwxNjAuMiYjeEE7YzQuNywwLDguNC0xLjQsMTEuMy00LjFjMi45LTIuNyw0LjQtNi4zLDQuNC0xMC42YzAtMi42LTAuNC01LjEtMS40LTcuNmMtMS0yLjQtMi4zLTQuNy00LjItNi43Yy0yLTIuMi00LjItMy45LTYuNi01JiN4QTtjLTIuNC0xLjItNS0xLjctNy45LTEuN2MtNC4zLDAtNy44LDEuMy0xMC41LDQuMmMtMi43LDIuOC00LDYuNS00LDExLjFjMCwyLjcsMC40LDUuMiwxLjMsNy42YzAuOSwyLjQsMi4yLDQuNiwzLjksNi41JiN4QTtjMS45LDIuMSw0LDMuNyw2LjIsNC43QzM1OC4xLDE1OS42LDM2MC42LDE2MC4yLDM2My40LDE2MC4yeiI+PC9wYXRoPjwvZz48L2c+PHBhdGggZD0iTTMzMy42LDE1NS40bDEuOSwyLjNjLTIuNiwyLjMtNS40LDQtOC41LDUuMWMtMy4xLDEuMS02LjQsMS43LTEwLjEsMS43Yy03LjksMC0xNC4zLTIuNC0xOS40LTcuNGMtNS01LTcuNi0xMS4yLTcuNi0xOC43JiN4QTtjMC03LjMsMi42LTEzLjQsNy43LTE4LjRjNS4xLTUuMSwxMS40LTcuNiwxOC44LTcuNmMyLjUsMCw1LDAuMyw3LjUsMWMyLjUsMC43LDUsMS43LDcuNSwzLjFsMi4yLDEuNHY5LjNoLTIuMlYxMjcmI3hBO2MwLTMuMi0xLjUtNS44LTQuNS04Yy0zLjEtMi4yLTctMy4zLTExLjktMy4zYy01LjYsMC0xMC4xLDEuNi0xMy41LDVjLTMuMywzLjQtNSw4LjItNSwxNC40YzAsMy41LDAuNSw2LjgsMS42LDEwJiN4QTtjMS4xLDMuMiwyLjYsNiw0LjcsOC41YzIuMywyLjcsNC43LDQuNyw3LjQsNS44YzIuNywxLjEsNS43LDEuNyw4LjksMS43YzIuOCwwLDUuMy0wLjQsNy43LTEuMiYjeEE7QzMyOS4xLDE1OS4xLDMzMS40LDE1Ny42LDMzMy42LDE1NS40eiI+PC9wYXRoPjwvZz48L2c+PC9zdmc+" alt="Universidad de Colima" style="height:62px;filter:brightness(0) invert(1)">
+    <div style="text-align:right;color:#AEB8CA;font-size:17px">Facultad de Telemática · Ingeniería en Software<br>Programación Distribuida · Grupo H</div>
+  </div>
+  <div style="margin-top:auto;margin-bottom:auto">
+    <div class="k">Unidad III · Sesión 2 · Martes 3 de noviembre</div>
+    <h1>Tu primer ticket</h1>
+    <p class="lead" style="max-width:980px">Hoy trabajan como un equipo de backend: les llega un bug, escriben las reglas, programan, pasan las pruebas automáticas y entregan un pull request revisado.</p>
+  </div>
+  <div class="mono" style="position:absolute;right:40px;bottom:30px;font-size:96px;font-weight:700;color:rgba(255,255,255,.05)">BUG-142</div>
+</section>
+
+<!-- 2 -->
+<section class="s" data-t="Así se trabaja">
+  <div class="k">¿Para qué me sirve esto? · cómo trabaja un equipo de backend</div>
+  <h2>En seis meses, así les va a llegar el trabajo</h2>
+  <div class="flow6">
+    <div class="st"><span class="n">1</span><b>Ticket</b>Alguien reporta un bug o pide una función</div>
+    <div class="st hoy"><span class="n">2</span><b>Especificación</b>Qué debe aceptar y qué rechazar</div>
+    <div class="st hoy"><span class="n">3</span><b>Código</b>En una rama propia</div>
+    <div class="st hoy"><span class="n">4</span><b>Pruebas automáticas</b>Corren solas en cada cambio</div>
+    <div class="st hoy"><span class="n">5</span><b>Pull request</b>Un compañero revisa antes de aceptar</div>
+    <div class="st"><span class="n">6</span><b>Producción</b>Lo usan los clientes</div>
+  </div>
+  <div class="grid2" style="margin-top:18px">
+    <div class="card"><h3>Lo que cambia respecto a la escuela</h3><p>Nadie califica “que funcione en tu máquina”. Tu código <b>no entra</b> al proyecto si no pasa las pruebas y si un compañero no lo aprueba.</p></div>
+    <div class="card"><h3>Lo que hacemos hoy</h3><p>Los pasos <b>2 a 5</b>, en su propio proyecto, con las mismas reglas. Lo que no les dé tiempo en clase, lo terminan para el miércoles.</p></div>
+  </div>
+  <div class="foot">Flujo de trabajo típico de un equipo que usa Git y pruebas automáticas</div>
+</section>
+
+<!-- 3 -->
+<section class="s" data-t="La unidad en el trabajo real">
+  <div class="k">La unidad completa, vista desde una empresa</div>
+  <h2 style="margin-bottom:6px;font-size:32px">Cada sesión es algo que les van a pedir</h2>
+  <table class="small mapa">
+    <tr><th style="width:12%">Sesión</th><th style="width:22%">Lo que hacemos</th><th style="width:24%">En una empresa se llama</th><th>Por qué se lo van a pedir</th></tr>
+    <tr><td class="c">1 · 29 oct</td><td>La ficha de endpoints</td><td>Diseño de la API (“API first”)</td><td>Front y back acuerdan el contrato antes de programar y trabajan en paralelo</td></tr>
+    <tr class="now"><td class="c">2 · hoy</td><td>Validación y prueba automática</td><td>Validación de entrada, pruebas en CI, code review</td><td>Su código no entra al proyecto si las pruebas no pasan</td></tr>
+    <tr><td class="c">3 · 5 nov</td><td>Base de datos y Swagger</td><td>Persistencia y documentación OpenAPI</td><td>Otros equipos usan su API leyendo la documentación, no preguntándoles</td></tr>
+    <tr><td class="c">4 · 10 nov</td><td>Login con JWT y roles</td><td>Autenticación y autorización</td><td>Los dos primeros riesgos del OWASP API Top 10 son de autorización y autenticación</td></tr>
+    <tr><td class="c">5 · 12 nov</td><td>APIs de terceros y de IA</td><td>Integraciones</td><td>Pagos, correo, mapas, facturación, IA: casi nada se programa desde cero</td></tr>
+    <tr><td class="c">6 · 17 nov</td><td>Front y CORS</td><td>Integración front-back</td><td>Es de los primeros errores que aparecen al conectar una página con una API</td></tr>
+    <tr><td class="c">7 · 19 nov</td><td>Pruebas y SOAP</td><td>QA automatizado y sistemas heredados</td><td>Bancos y gobierno siguen usando SOAP: el servicio del SAT para consultar un CFDI se consume con un WSDL</td></tr>
+    <tr><td class="c">8 · 24 nov</td><td>Despliegue</td><td>Deploy, variables de entorno, README</td><td>“En mi máquina sí funciona” no cuenta</td></tr>
+    <tr><td class="c">9 · 26 nov</td><td>Presentación</td><td>Demo y defensa técnica</td><td>Explicar su código ante el equipo o el cliente</td></tr>
+  </table>
+  <div class="foot">OWASP Foundation (2023), API Security Top 10 <button class="ref" data-ref="owasp3" aria-label="OWASP">R</button> · phpcfdi (s.f.), sat-estado-cfdi <button class="ref" data-ref="sat" aria-label="SAT">R</button></div>
+</section>
+
+<!-- 4 -->
+<section class="s" data-t="Lo que entregaron">
+  <div class="k">Lo que entregaron el jueves · 19 de 20</div>
+  <h2>El laboratorio salió completo. Sus fichas, casi.</h2>
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="card stat t"><div class="big">19/19</div><span>completaron la misión de 11 pasos y corrieron <code>ver_http.py</code></span></div>
+    <div class="card stat t"><div class="big">18</div><span>leyeron bien el mensaje HTTP (7 u 8 de 8)</span></div>
+    <div class="card stat r"><div class="big">2</div><span>de los 8 equipos eligieron un endpoint idempotente que no era el importante</span></div>
+  </div>
+  <div class="team">
+    <div><b>Travel Planer</b>viajes y actividades</div>
+    <div><b>Citas médicas</b>clínica pequeña</div>
+    <div><b>Registro de estudiantes</b>alumnos y clases</div>
+    <div><b>Nexus</b>películas y series</div>
+    <div><b>MiniPoS</b>tienda de abarrotes</div>
+    <div><b>Gestor de tareas</b>tareas personales</div>
+    <div><b>Katea</b>pedidos de cafetería</div>
+    <div><b>PLOTO</b>estacionamiento</div>
+  </div>
+  <div class="foot">Fuente: entregas de la Sesión 1 en Classroom</div>
+</section>
+
+<!-- 5 -->
+<section class="s" data-t="Code review de sus fichas">
+  <div class="k">Así se ve un code review · sus fichas contra una guía real</div>
+  <h2 style="margin-bottom:6px">No son manías del profe: son reglas publicadas <button class="ref" data-ref="zalando" aria-label="Ver referencia de la guía de Zalando">R</button></h2>
+  <p style="font-size:19px;margin:0 0 10px;color:var(--soft)">Zalando (comercio electrónico, Europa) publica las reglas que deben cumplir todas sus APIs. Sus fichas, revisadas con esa guía:</p>
+  <div class="retro">
+    <div class="r"><code>errores: 404, 422, 500</code><p><b>[220] MUST use most specific HTTP status codes.</b> Un 500 no se planea: es un bug.</p></div>
+    <div class="r"><code>POST /api/classes/join</code><p><b>[141] MUST keep URLs verb-free</b> y <b>[135] SHOULD not use /api as base path.</b> Mejor <code>POST /clases/{codigo}/alumnos</code>.</p></div>
+    <div class="r"><code>PUT /reactions/… aplica o quita</code><p><b>[229] SHOULD consider to design POST and PATCH idempotent.</b> Un interruptor no lo es: que diga el estado, <code>{"activa": true}</code>.</p></div>
+    <div class="r"><code>Recursos: usuarios individuales…</code><p><b>[138] MUST avoid actions — think about resources</b> y <b>[134] MUST pluralize resource names.</b> El recurso es lo que se maneja: tareas.</p></div>
+    <div class="r"><code>GET /api/login</code><p>Con GET la contraseña viaja <b>en la URL</b>: queda en el historial y en los registros del servidor. El login va con POST.</p></div>
+    <div class="r"><code>errores: -</code><p>Todo endpoint puede fallar: como mínimo 404 y 422. Lo corrigen en el bloque 00.</p></div>
+  </div>
+  <div class="foot">Zalando SE (s.f.): número de regla entre corchetes · Corrección mía: <code>POST /auth/login → 200</code> está bien</div>
+</section>
+
+<!-- 6 -->
+<section class="s" data-t="Idempotencia: la relevancia">
+  <div class="k">“La idempotencia aún no me queda claro qué relevancia tiene” · un compañero, el jueves</div>
+  <h2>Aquí está la relevancia: las peticiones se reintentan solas</h2>
+  <div class="grid2">
+    <div class="card" style="border-top:6px solid var(--blue)">
+      <h3>Amazon Web Services <button class="ref" data-ref="aws" aria-label="Ver referencia de AWS">R</button></h3>
+      <p>Al pedir un servidor nuevo, la respuesta puede perderse por un timeout. Las herramientas de AWS generan un identificador (<code>ClientToken</code>) y lo <b>reusan al reintentar</b>: el segundo intento regresa el mismo servidor en lugar de crear otro, y cobrarlo.</p>
+    </div>
+    <div class="card" style="border-top:6px solid var(--teal)">
+      <h3>Stripe (pagos) <button class="ref" data-ref="stripe" aria-label="Ver referencia de Stripe">R</button></h3>
+      <p>Cada cobro lleva el encabezado <code>Idempotency-Key</code>. Si la app reintenta con la misma llave, Stripe regresa el resultado del primero y <b>no cobra dos veces</b>. Zalando lo pide en su regla <b>[230]</b>.</p>
+    </div>
+  </div>
+  <div class="ana" style="margin-top:16px"><b>En sus proyectos:</b> no es “cualquier GET” (un GET nunca hace daño). Es el endpoint que <b>escribe</b> y duele si se repite: <code>POST /pedidos/{id}/pagos</code>, <code>POST /ventas</code>, <code>POST /boletos</code>. Lo vuelven a pensar en el bloque 00.</div>
+  <div class="foot">Featonby (s.f.), AWS Builders’ Library · Stripe (s.f.) · Zalando SE (s.f.), regla 230</div>
+</section>
+
+<!-- 7 -->
+<section class="s dark" data-t="Gancho">
+  <div class="k">Antes de empezar · voten</div>
+  <h2>El formulario de su app web ya revisa que la edad sea positiva.<br>¿Hace falta revisarla <u>también</u> en la API?</h2>
+  <div class="vote">
+    <div><b>A</b>No: si el formulario ya la revisa, a la API nunca le llega una edad negativa.</div>
+    <div><b>B</b>Sí: cualquiera puede mandarle la petición a la API sin pasar por el formulario.</div>
+    <div><b>C</b>Solo si la API es pública en internet.</div>
+  </div>
+  <p class="lead" style="margin-top:16px">Pista: piensen en lo que hicieron el jueves con <code>ver_http.py</code>.</p>
+  <div class="foot">Mano alzada: A, B o C</div>
+</section>
+
+<!-- 8 -->
+<section class="s" data-t="El ticket">
+  <div class="k">Así llega el trabajo · el ticket de hoy</div>
+  <div class="ticket">
+    <div class="th"><span class="id">BUG-142</span><span class="tag r">Bug</span><span class="tag a">Prioridad alta</span><span style="margin-left:auto;color:var(--soft);font-size:17px">Asignado a: su equipo</span></div>
+    <h3>POST /productos acepta datos inválidos y el reporte de ventas responde 500</h3>
+    <p><b>Descripción.</b> Desde ayer el reporte diario truena. En la base de datos hay productos con precio negativo, con el stock como texto (<code>"abc"</code>) y con campos que ni existen.</p>
+    <p style="margin-top:8px"><b>Criterios de aceptación</b></p>
+    <ul class="ac">
+      <li>POST y PUT rechazan los datos inválidos con <b>422</b> y dicen qué campo falló.</li>
+      <li>Un dato que choca con lo que ya hay responde <b>409</b>.</li>
+      <li>Todos los errores usan el formato del equipo: <code>{"error", "detalles"}</code>.</li>
+      <li>Las pruebas automáticas pasan: <b>11 de 11</b>.</li>
+      <li>Pull request revisado y aprobado por un compañero.</li>
+    </ul>
+  </div>
+  <p style="margin-top:12px;font-size:20px">Cada equipo resuelve este ticket <b>en su propio proyecto</b>, con su recurso principal. Los criterios de aceptación son su lista para saber cuándo terminaron.</p>
+  <div class="foot">Ticket de ejemplo con el formato que usan herramientas como Jira o GitHub Issues</div>
+</section>
+
+<!-- 9 -->
+<section class="s" data-t="Sin validar">
+  <div class="k">Pregunta 1 · ¿Qué pasa si no valido? · demostración en vivo</div>
+  <h2 style="margin-bottom:10px">Un POST que acepta cualquier cosa</h2>
+  <div class="term"><span class="cm"># 1. Alguien manda datos correctos</span>
+POST /sin-validar/equipos  {"nombre": "Arduino", "cantidad": 3}           <span class="ok">→ 201</span>
+<span class="cm"># 2. Alguien manda basura (un error del front, un script, alguien malintencionado)</span>
+POST /sin-validar/equipos  {"nombre": "", "cantidad": "abc", "precio": -50}  <span class="ok">→ 201</span>   <span class="y">¡la aceptó!</span>
+<span class="cm"># 3. La basura ya está guardada</span>
+GET  /sin-validar/equipos   <span class="ok">→ 200</span>  [{"nombre":"Arduino","cantidad":3}, {"nombre":"","cantidad":"abc","precio":-50}]
+<span class="cm"># 4. Otro endpoint confía en los datos… y truena</span>
+GET  /sin-validar/reporte   <span class="bad">→ 500</span>  {"error": "Error interno del servidor"}</div>
+  <div class="ana" style="margin-top:14px"><b>El dato malo entró por una puerta y tronó en otra.</b> El reporte no tiene ningún bug: el problema fue el POST que dejó entrar <code>"abc"</code> donde iba un número. Y ese 500 le va a salir a <b>todos</b> los usuarios hasta que alguien limpie la base de datos a mano.</div>
+  <div class="foot">Salida real de api_equipos.py (endpoints de demostración /sin-validar)</div>
+</section>
+
+<!-- 10 -->
+<section class="s" data-t="También es seguridad">
+  <div class="k">Pregunta 1 · Por qué validar no es solo “que no truene”</div>
+  <h2 style="margin-bottom:10px">Validar en la entrada también es seguridad <button class="ref" data-ref="owasp3" aria-label="Ver referencia de OWASP API3">R</button></h2>
+  <div class="def"><b>Validar</b> es revisar los datos de una petición <b>al entrar</b>, antes de hacer nada con ellos, y rechazar con un error claro lo que no cumple las reglas. Lo que no está en las reglas, no se guarda.</div>
+  <div class="grid2" style="grid-template-columns:1fr 1fr">
+    <div><p class="lbl2">Sin validar: guarda lo que le manden</p>
+<div class="term" style="font-size:14.5px">POST /sin-validar/equipos
+{"nombre": "Arduino Mega",
+ "estado": "prestado", "precio": -50}
+<span class="ok">→ 201</span> {"nombre":"Arduino Mega",
+        <span class="bad">"estado":"prestado","precio":-50</span>}</div></div>
+    <div><p class="lbl2">Validando: solo lo que dicen las reglas</p>
+<div class="term" style="font-size:14.5px">POST /equipos
+{"nombre": "Arduino Mega", "tipo": "arduino",
+ "inventario": "LAB-030",
+ "estado": "prestado", "precio": -50}
+<span class="ok">→ 201</span> {…,"inventario":"LAB-030",
+        <span class="ok">"estado":"disponible"</span>}</div></div>
+  </div>
+  <div class="ana" style="margin-top:12px">Que el cliente pueda cambiar campos que no le tocan (<code>estado</code>, <code>rol</code>, <code>precio</code>) está en el <b>OWASP API Security Top 10</b>, la lista de los riesgos más comunes en APIs: es el <b>API3:2023</b> (antes llamado <i>mass assignment</i>).</div>
+  <div class="foot">Salidas reales de api_equipos.py · OWASP Foundation (2023), API3:2023 Broken Object Property Level Authorization</div>
+</section>
+
+<!-- 11 -->
+<section class="s" data-t="Cuatro filtros">
+  <div class="k">Pregunta 2 · ¿Qué se valida?</div>
+  <h2>Cuatro filtros, cada uno con su código <button class="ref" data-ref="codigos" aria-label="Ver referencia de los códigos">R</button></h2>
+  <div class="filters">
+    <div class="f fc1"><div class="num">FILTRO 1</div><h3>¿Se entiende el mensaje?</h3><div class="cd">400</div><p>El JSON está roto: <code>{"nombre": ,,}</code></p></div>
+    <div class="f fc2"><div class="num">FILTRO 2</div><h3>¿Están los datos y tienen la forma correcta?</h3><div class="cd">422</div><p>Falta el nombre, el precio es <code>"abc"</code> o es negativo.</p></div>
+    <div class="f fc3"><div class="num">FILTRO 3</div><h3>¿Existe lo que pide la ruta?</h3><div class="cd">404</div><p><code>GET /equipos/99</code> y no hay equipo 99.</p></div>
+    <div class="f fc4"><div class="num">FILTRO 4</div><h3>¿Choca con lo que ya hay?</h3><div class="cd">409</div><p>Prestar un equipo que ya está prestado.</p></div>
+  </div>
+  <div class="ana" style="margin-top:16px"><b>Una regla útil:</b> si lo que no existe viene en la <b>ruta</b> (<code>/equipos/99</code>) es <b>404</b>. Si viene en el <b>cuerpo</b> (<code>{"equipo_id": 99}</code>) es un dato inválido: <b>422</b>.</div>
+  <div class="foot">Fielding et al. (2022), RFC 9110 §15.5.1, §15.5.5, §15.5.10 y §15.5.21</div>
+</section>
+
+<!-- 12 -->
+<section class="s" data-t="La especificación">
+  <div class="k">Pregunta 2 · Paso 2 del flujo · antes de programar</div>
+  <h2 style="margin-bottom:8px">La especificación: las reglas se escriben antes del código</h2>
+  <p style="font-size:19px;margin:0 0 10px;color:var(--soft)">Así se ve la de MiniPoS. Es lo que hacen en el bloque 03 con su recurso.</p>
+  <div class="grid2" style="grid-template-columns:1.35fr 1fr">
+    <table class="small">
+      <tr><th>Campo</th><th>Tipo</th><th>Regla</th><th>Se rechaza (422)</th></tr>
+      <tr><td class="c">nombre</td><td>texto</td><td>obligatorio, 2 a 60 caracteres</td><td class="mono">""</td></tr>
+      <tr><td class="c">precio</td><td>decimal</td><td>obligatorio, mayor que 0</td><td class="mono">-5 · "veinte"</td></tr>
+      <tr><td class="c">stock</td><td>entero</td><td>0 o más (el 0 es válido)</td><td class="mono">"diez" · -1</td></tr>
+      <tr><td class="c">categoria</td><td>lista</td><td>abarrotes, bebidas o limpieza</td><td class="mono">"juguetes"</td></tr>
+      <tr><td class="c">codigo</td><td>texto</td><td>13 dígitos</td><td class="mono">"75012"</td></tr>
+    </table>
+    <div>
+      <div class="card" style="border-top:6px solid var(--red);margin-bottom:12px"><h3>Regla del negocio → 409</h3><p>Crear un producto con un <code>codigo</code> que ya existe. Vender más piezas de las que hay en <code>stock</code>.</p></div>
+      <div class="card"><h3>¿Por qué antes?</h3><p>Porque el front, las pruebas y el código se hacen contra esta tabla. Zalando lo llama <b>API first</b> (regla <b>[100]</b>).</p></div>
+    </div>
+  </div>
+  <div class="foot">Ejemplo construido sobre la ficha de MiniPoS · Zalando SE (s.f.), regla 100</div>
+</section>
+
+<!-- 13 -->
+<section class="s" data-t="Formato de error">
+  <div class="k">Pregunta 3 · ¿Qué respondo cuando algo falla?</div>
+  <h2 style="margin-bottom:10px">Un formato de error del equipo, y nunca la traza <button class="ref" data-ref="problem" aria-label="Ver referencia del formato de error">R</button></h2>
+  <div class="grid2" style="grid-template-columns:1fr 1.05fr">
+    <div>
+      <p class="lbl2">Lo correcto: siempre la misma forma</p>
+      <div class="term" style="font-size:15px">HTTP/1.1 422 Unprocessable Entity
+{"error": "Los datos no son válidos",
+ "detalles": ["nombre: mínimo 2 caracteres",
+              "inventario: formato LAB-000"]}</div>
+      <p style="font-size:18.5px;margin-top:10px">El front escribe <b>un solo</b> código para mostrar errores. Zalando exige un formato estándar, <i>Problem JSON</i> (<b>[176]</b>, RFC 9457). En el curso usamos uno más simple; lo importante es que sea siempre el mismo.</p>
+    </div>
+    <div>
+      <p class="lbl2">Lo que no: Express sin manejador de errores</p>
+      <div class="term" style="font-size:14.5px;white-space:pre-wrap">HTTP/1.1 400 Bad Request
+Content-Type: text/html
+
+&lt;pre&gt;SyntaxError: Unexpected token ','
+  at JSON.parse (&lt;anonymous&gt;)
+  at parse (/home/…/node_modules/body-parser/…</div>
+      <div class="card" style="border-top:6px solid var(--red);margin-top:10px;padding:12px 16px"><p style="font-size:18.5px">No es JSON y <b>muestra rutas internas del servidor</b>. Zalando: <b>[177] MUST not expose stack traces</b>. OWASP lo marca como riesgo (<b>API8:2023</b>). Y un 500 por un dato malo no es validación: es un bug.</p></div>
+    </div>
+  </div>
+  <div class="foot">Salidas reales de api_equipos.py y de Express 4 · OWASP Foundation (2023), API8:2023 Security Misconfiguration</div>
+</section>
+
+<!-- 14 -->
+<section class="s" data-t="Demo: el modelo">
+  <div class="k">Demostración · el ejemplo resuelto del jueves, ya programado · <code>api_equipos.py</code></div>
+  <h2 style="margin-bottom:10px">Las reglas del filtro 2 se escriben una vez</h2>
+  <div class="code" style="font-size:17px"><span class="cm"># Las reglas de validación: qué datos aceptamos</span>
+<span class="new">class EquipoNuevo(BaseModel):</span><span class="new">    nombre:     str   = Field(..., min_length=2, max_length=60)       <span class="cm"># ¿viene? ¿largo?</span></span><span class="new">    tipo:       Literal["multimetro", "arduino", "osciloscopio", "fuente"]   <span class="cm"># ¿permitido?</span></span><span class="new">    inventario: str   = Field(..., pattern=r"^LAB-\d{3}$")            <span class="cm"># ¿formato?</span></span>
+@app.post("/equipos", status_code=201)
+def crear_equipo(datos: <span style="color:#F2C27B">EquipoNuevo</span>, response: Response):   <span class="cm"># si no cumple, ya respondió 422</span>
+<span class="new">    if inventario_repetido(datos.inventario):                   <span class="cm"># filtro 4: regla del negocio</span>
+        raise HTTPException(409, f"Ya existe un equipo con inventario {datos.inventario}")</span>    nuevo = {"id": siguiente["equipo"], **datos.model_dump(), "estado": "disponible"}
+    ...</div>
+  <p style="margin-top:12px;font-size:20px">El filtro 2 lo hace el modelo. El filtro 4 lo escriben ustedes, porque solo ustedes conocen las reglas de su negocio. <span class="pill warn">ámbar = las reglas</span></p>
+  <div class="foot">Ramírez (s.f.), FastAPI · Pydantic Services (s.f.), Pydantic</div>
+</section>
+
+<!-- 15 -->
+<section class="s" data-t="Equivalencias">
+  <div class="k">Lenguaje libre · la misma regla en tres lenguajes · archivos en Classroom</div>
+  <h2 style="margin-bottom:10px">Cambia la sintaxis, no la idea</h2>
+  <div class="cols3">
+    <div><h3>Python · FastAPI</h3><div class="code">nombre: str = Field(
+    ..., min_length=2)
+<span class="cm"># falla → 422 automático</span>
+
+raise HTTPException(
+    409, "Inventario repetido")
+
+@app.post(..., status_code=201)</div></div>
+    <div><h3>Node · Express</h3><div class="code">if (typeof d.nombre !== 'string'
+    || d.nombre.trim().length &lt; 2)
+  det.push('nombre: mínimo 2');
+if (det.length) return res
+  .status(422).json({error, det});
+
+res.status(201).json(e);</div></div>
+    <div><h3>PHP</h3><div class="code">if (mb_strlen(trim(
+    $d['nombre'] ?? '')) &lt; 2)
+  $det[] = 'nombre: mínimo 2';
+if ($det) error(422,
+  'Datos no válidos', $det);
+
+http_response_code(201);</div></div>
+  </div>
+  <div class="ana" style="margin-top:14px"><b>Si usan Laravel:</b> <code>$request-&gt;validate([...])</code> responde 422 en JSON solo si la petición dice <code>Accept: application/json</code>; si no, <b>redirige</b> (302). <code>probar_api.py</code> ya manda ese encabezado; su front también debe mandarlo.</div>
+  <div class="foot">api_equipos.py · api_equipos_express.js · api_equipos.php · Laravel (s.f.), Validation</div>
+</section>
+
+<!-- 16 -->
+<section class="s" data-t="probar_api.py">
+  <div class="k">Pregunta 4 · Paso 4 del flujo · sus pruebas automáticas</div>
+  <h2 style="margin-bottom:10px">En una empresa esto corre solo en cada cambio. Hoy, <code>probar_api.py</code></h2>
+  <div class="grid2" style="grid-template-columns:1fr 1.05fr">
+    <div>
+      <p style="font-size:20px">Solo habla HTTP con su API, así que sirve en <b>cualquier lenguaje</b>. Ustedes llenan <code>prueba.json</code>:</p>
+      <div class="code" style="font-size:14.5px">{
+  "matricula": "20201234",
+  "base": "http://127.0.0.1:8000",
+  "coleccion": "/productos",
+  "valido":   {"nombre": "Pan", "precio": 18, …},
+  "invalido": {"nombre": "", "precio": -5, …},
+  "metodo_cambio": "PUT",
+  "cambio":   {"nombre": "Pan integral", …}
+}</div>
+      <p style="font-size:18.5px;margin-top:10px;color:var(--soft)">En los equipos esto se llama <b>integración continua (CI)</b>: GitHub, por ejemplo, corre las pruebas en cada pull request y marca en rojo el que no pasa.</p>
+    </div>
+    <div class="card" style="padding:12px 16px">
+      <table class="small">
+        <tr><th>Prueba</th><th>Espera</th></tr>
+        <tr><td>1–3 · Crear, consultar y listar</td><td class="c">201 · 200</td></tr>
+        <tr><td>4 · Datos inválidos</td><td class="c">422/400</td></tr>
+        <tr><td>5 · …y no se guardaron (la foto)</td><td class="c">igual</td></tr>
+        <tr><td>6 · …y el error viene en JSON</td><td class="c">JSON</td></tr>
+        <tr><td>7 · JSON roto, sin tronar</td><td class="c">400/422</td></tr>
+        <tr><td>8 · Uno que no existe</td><td class="c">404</td></tr>
+        <tr><td>9 · PUT dos veces: misma foto</td><td class="c">idempotente</td></tr>
+        <tr><td>10–11 · Borrar dos veces y consultar</td><td class="c">204 · 404</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot">Probado contra el mismo CRUD en FastAPI, Express y PHP: 11 de 11 en los tres</div>
+</section>
+
+<!-- 17 -->
+<section class="s" data-t="Un CRUD sin pensar">
+  <div class="k">Pregunta 4 · Lo que detecta</div>
+  <h2 style="margin-bottom:10px">Un CRUD “que funciona”, contra la prueba</h2>
+  <div class="grid2" style="grid-template-columns:1fr 1fr">
+    <div><p class="lbl" style="font-size:15px;color:var(--soft);font-weight:700;text-transform:uppercase">Express sin validación ni códigos</p>
+    <div class="term" style="font-size:15px">[X ]  1. POST con datos válidos crea (201)   -> 200
+[OK]  2. GET del recurso creado (200)        -> 200
+[OK]  3. GET de la colección lo incluye      -> 200
+[X ]  4. POST inválido se rechaza            -> 200
+[X ]  5. …y no se guardó nada        antes 2, después 3
+[X ]  6. …y el error viene en JSON     no hubo error
+[X ]  7. JSON roto: 400/422 con JSON   -> 400 (no JSON)
+[X ]  8. GET de uno que no existe      -> 200
+[OK]  9. PUT dos veces: misma foto     -> 200 y 200
+[X ] 10. DELETE dos veces              -> 200 y 200
+[X ] 11. GET después de borrar         -> 200
+
+<span class="bad">RESULTADO: 3 de 11</span></div></div>
+    <div><p class="lbl" style="font-size:15px;color:var(--soft);font-weight:700;text-transform:uppercase">El mismo CRUD, validando</p>
+    <div class="term" style="font-size:15px">[OK]  1. POST con datos válidos crea (201)   -> 201
+[OK]  2. GET del recurso creado (200)        -> 200
+[OK]  3. GET de la colección lo incluye      -> 200
+[OK]  4. POST inválido se rechaza            -> 422
+[OK]  5. …y no se guardó nada        antes 1, después 1
+[OK]  6. …y el error viene en JSON
+[OK]  7. JSON roto: 400/422 con JSON   -> 400
+[OK]  8. GET de uno que no existe      -> 404
+[OK]  9. PUT dos veces: misma foto     -> 200 y 200
+[OK] 10. DELETE dos veces              -> 204 y 404
+[OK] 11. GET después de borrar         -> 404
+
+<span class="ok">RESULTADO: 11 de 11</span></div></div>
+  </div>
+  <p style="margin-top:10px;font-size:19.5px">Las dos “funcionan” en Postman. Solo una se defiende. Así puede quedar un CRUD hecho con prisa, o pedido a una IA sin decirle que valide.</p>
+  <div class="foot">Salidas reales de probar_api.py (las líneas se recortaron para que quepan)</div>
+</section>
+
+<!-- 18 -->
+<section class="s" data-t="Pull request">
+  <div class="k">Paso 5 del flujo · cómo entregan hoy</div>
+  <h2 style="margin-bottom:10px">Como en un equipo: rama, pull request y revisión</h2>
+  <div class="grid2" style="grid-template-columns:1fr 1fr">
+    <div>
+      <p class="lbl2">1 · Quien programa</p>
+      <div class="term" style="font-size:15px">git checkout -b validacion-productos
+<span class="cm"># … programan y corren probar_api.py …</span>
+git add .
+git commit -m "Valida POST y PUT de productos"
+git push -u origin validacion-productos</div>
+      <p style="font-size:18.5px;margin-top:10px">En GitHub: <b>Compare &amp; pull request</b>. En la descripción: qué cambia y <b>cómo se probó</b> (peguen la línea <code>RESULTADO: 11 de 11</code>).</p>
+    </div>
+    <div>
+      <p class="lbl2">2 · Quien revisa (otro integrante)</p>
+      <div class="card" style="padding:12px 16px">
+        <ul class="ac" style="margin:0">
+          <li>Bajé la rama y corrí <code>probar_api.py</code> con mi matrícula.</li>
+          <li>Las reglas del código coinciden con la especificación (bloque 03).</li>
+          <li>Los errores usan el formato del equipo y no hay 500.</li>
+        </ul>
+        <p style="font-size:18px;margin:8px 0 0">Si todo está bien: <b>Approve</b> y <b>Merge</b>. Si no: un comentario en la línea exacta.</p>
+      </div>
+      <p style="font-size:17.5px;margin-top:10px;color:var(--soft)">Si trabajas solo, abre el PR igual y revísalo con la misma lista: es el hábito que importa.</p>
+    </div>
+  </div>
+  <div class="foot">En el bloque 04 del artefacto pegan el enlace al pull request</div>
+</section>
+
+<!-- 19 -->
+<section class="s" data-t="Práctica">
+  <div class="k">Práctica · con su equipo · en su lenguaje</div>
+  <h2 style="margin-bottom:10px">Resuelvan el BUG-142 en su proyecto</h2>
+  <div class="steps" style="max-width:1100px">
+    <div><b>Bloque 00:</b> corrijan su ficha con el code review (5 min).</div>
+    <div><b>Bloques 01 y 02:</b> qué filtro detiene cada petición y encuentra el bug (10 min, individual).</div>
+    <div><b>Bloque 03 · especificación:</b> las reglas de su recurso principal, en equipo (10 min).</div>
+    <div><b>Código</b> en una rama: el CRUD del recurso con sus reglas. Datos en memoria; la base de datos es el jueves. Pueden partir de los archivos de ejemplo.</div>
+    <div><b>Pruebas:</b> <code>prueba.json</code> y <code>python probar_api.py</code> hasta llegar a 11 de 11.</div>
+    <div><b>Pull request</b> revisado por un compañero. Bloques 04 a 06 del artefacto y cada quien genera su PDF.</div>
+  </div>
+  <div class="ana" style="margin-top:14px">Entrega: <b>miércoles 4 de noviembre, hasta las 23:59</b>. Pueden usar IA, como en cualquier empresa, pero en el bloque 05 cada quien explica una validación <b>de su código</b>, como lo haría en una revisión.</div>
+  <div class="foot">Cada integrante corre probar_api.py con su propia matrícula</div>
+</section>
+
+<!-- 20 -->
+<section class="s" data-t="Entrevista">
+  <div class="k">Para no llegar novatos · preguntas típicas de una entrevista de backend</div>
+  <h2 style="margin-bottom:10px">Después de hoy, ya las pueden contestar</h2>
+  <div class="iv">
+    <div><b>“¿Por qué validar en el backend si el front ya valida?”</b><span>Porque al backend le pueden llegar peticiones sin pasar por el front. El front valida por comodidad; el backend, por protección.</span></div>
+    <div><b>“¿Qué diferencia hay entre 400, 422 y 409?”</b><span>400: no se entiende el mensaje. 422: se entiende, pero los datos no cumplen las reglas. 409: los datos están bien, pero chocan con lo que ya hay.</span></div>
+    <div><b>“¿Qué es la idempotencia y dónde la cuidarías?”</b><span>Repetir la petición deja los datos igual. La cuido en los pagos y en todo lo que el cliente pueda reintentar.</span></div>
+    <div><b>“¿Qué pasa si a tu API le llega un dato malo?”</b><span>Responde 4xx con un formato de error claro; nunca un 500 ni la traza del error.</span></div>
+    <div><b>“¿Cómo sabes que tu API funciona antes de entregarla?”</b><span>Con pruebas automáticas que corren en cada cambio, no probando a mano en Postman.</span></div>
+  </div>
+  <div class="foot">Si en la entrevista contestan con un ejemplo de su proyecto, mejor</div>
+</section>
+
+<!-- 21 -->
+<section class="s dark" data-t="Cierre">
+  <div class="k">Cierre · el gancho</div>
+  <h2>¿Validar también en la API? <span style="color:#4FD1C5">La B.</span></h2>
+  <div class="grid2">
+    <div>
+      <p>El jueves ustedes le mandaron peticiones a una API <b>sin ningún formulario</b>: con <code>/docs</code> y con un socket. Cualquiera puede hacer lo mismo con su API: con Postman, con <code>curl</code>, con un script.</p>
+      <p style="margin-top:10px">El front valida para <b>ayudar al usuario</b>. La API valida para <b>proteger los datos</b>. Si solo valida el front, la API no tiene defensa.</p>
+    </div>
+    <div class="card" style="background:#1C2331;border-color:#3A4458;color:#fff">
+      <h3>Llévense esto</h3>
+      <ul class="tight" style="color:#D6DDEA">
+        <li>Nunca confíes en lo que llega: valida al entrar.</li>
+        <li>Cuatro filtros: 400 · 422 · 404 · 409. Un 500 es un bug.</li>
+        <li>El código entra con pruebas y con revisión, no “porque funciona”.</li>
+      </ul>
+      <p style="margin-top:14px;color:#AEB8CA">Jueves 5: <b>base de datos y Swagger</b>. En una empresa, otros equipos van a usar su API leyendo su documentación.</p>
+    </div>
+  </div>
+  <div class="foot">Unidad III · Sesión 2</div>
+</section>
+
+<!-- 22 -->
+<section class="s" data-t="Apéndice: si algo falla">
+  <div class="k">Apéndice · Si algo falla · mensajes reales</div>
+  <h2 style="margin-bottom:10px;font-size:34px">Lo que puede decir <code>probar_api.py</code></h2>
+  <table class="small">
+    <tr><th style="width:44%">Mensaje</th><th>Qué pasa y qué hacer</th></tr>
+    <tr><td class="mono" style="font-size:15px">No pude conectarme a http://127.0.0.1:8000: [Errno 111] Connection refused. ¿Tu API está corriendo?</td><td>Su API no está corriendo, o está en otro puerto (Express suele usar 3000). Revisen <code>"base"</code> en <code>prueba.json</code>.</td></tr>
+    <tr><td class="mono" style="font-size:15px">prueba.json no es un JSON válido (línea 2): revisa comas y comillas.</td><td>Una coma de más o de menos, o comillas simples en lugar de dobles.</td></tr>
+    <tr><td class="mono" style="font-size:15px">(no encontré el id en la respuesta ni en Location)</td><td>Su POST no regresa el recurso creado con su id. Regrésenlo, o cambien <code>"campo_id"</code> si se llama distinto (<code>_id</code>, <code>id_viaje</code>).</td></tr>
+    <tr><td class="mono" style="font-size:15px">-> 400  (el error no viene en JSON)</td><td>Express sin manejador de errores: agreguen el <code>app.use((err, req, res, next) =&gt; …)</code> del archivo de ejemplo.</td></tr>
+    <tr><td class="mono" style="font-size:15px">-> 500  (un 500 es un bug: tu API se cayó)</td><td>Su código lanzó una excepción con el dato malo. Vean la terminal de su API: ahí está el error.</td></tr>
+    <tr><td class="mono" style="font-size:15px">antes 2, después 3</td><td>Respondieron con error, pero <b>guardaron antes de validar</b>. Validen primero, guarden después.</td></tr>
+  </table>
+  <div class="foot">Los tres primeros mensajes y los de Express se reprodujeron en el sandbox</div>
+</section>
+
+<!-- 23 -->
+<section class="s" data-t="Apéndice: códigos">
+  <div class="k">Apéndice · Tarjeta de referencia</div>
+  <h2 style="margin-bottom:8px;font-size:34px">Códigos de estado que van a usar</h2>
+  <table class="small">
+    <tr><th>Código</th><th>Significa</th><th>Filtro</th></tr>
+    <tr><td class="c">200 OK</td><td>Salió bien y aquí están los datos</td><td>—</td></tr>
+    <tr><td class="c">201 Created</td><td>Se creó algo nuevo (y <code>Location</code> dice dónde)</td><td>—</td></tr>
+    <tr><td class="c">204 No Content</td><td>Salió bien y no hay nada que regresar</td><td>—</td></tr>
+    <tr><td class="c">400 Bad Request</td><td>No se entiende la petición (JSON roto)</td><td>1</td></tr>
+    <tr><td class="c">401 Unauthorized</td><td>No sé quién eres (sesión 4)</td><td>—</td></tr>
+    <tr><td class="c">403 Forbidden</td><td>Sé quién eres, pero no tienes permiso (sesión 4)</td><td>—</td></tr>
+    <tr><td class="c">404 Not Found</td><td>No existe lo que pide la ruta</td><td>3</td></tr>
+    <tr><td class="c">409 Conflict</td><td>Choca con lo que ya hay</td><td>4</td></tr>
+    <tr><td class="c">422 Unprocessable</td><td>Se entiende, pero los datos no son válidos</td><td>2</td></tr>
+    <tr><td class="c">500 Internal Error</td><td>Su código falló: es un bug, no una validación</td><td>—</td></tr>
+  </table>
+  <div class="foot">Fielding et al. (2022), RFC 9110 §15</div>
+</section>
+
+<!-- 24 -->
+<section class="s" data-t="Referencias">
+  <div class="k">Referencias</div>
+  <h2 style="margin-bottom:12px">Fuentes de esta sesión</h2>
+  <div id="reflist"></div>
+  <div class="foot">Formato APA 7.ª ed.</div>
+</section>
+
+</div>
+
+<div id="nav"><button id="prev" aria-label="Diapositiva anterior">←</button><span id="cnt"></span><button id="next" aria-label="Diapositiva siguiente">→</button><button id="fs" aria-label="Pantalla completa">⛶</button></div>
+<div id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mt"><div class="box2"><h4 id="mt"></h4><p class="d" id="md"></p><div class="apa" id="ma"></div><button id="mc">Cerrar</button></div></div>
+
+<script>
+"use strict";
+const R9110='Fielding, R., Nottingham, M., y Reschke, J. (Eds.). (2022). <i>HTTP semantics</i> (RFC 9110). Internet Engineering Task Force. https://doi.org/10.17487/RFC9110';
+const REFS={
+  zalando:{t:'Guía de APIs de Zalando',d:'Zalando publica las reglas que deben cumplir sus APIs REST, numeradas y clasificadas como MUST, SHOULD o MAY. Entre ellas: [100] seguir el principio API first, [134] nombres de recursos en plural, [135] no usar /api como ruta base, [138] pensar en recursos y no en acciones, [141] URLs sin verbos, [176] usar Problem JSON para los errores, [177] no exponer trazas de error, [220] usar el código de estado más específico, [229] diseñar POST y PATCH idempotentes y [230] considerar el encabezado Idempotency-Key.',a:['Zalando SE. (s.f.). <i>Zalando RESTful API and event guidelines</i>. https://opensource.zalando.com/restful-api-guidelines/']},
+  aws:{t:'Reintentos seguros en AWS',d:'Una llamada puede fallar por un timeout sin que el cliente sepa si se ejecutó. AWS define una operación idempotente como la que se puede retransmitir o reintentar sin efectos adicionales. En EC2 RunInstances, el CLI y los SDK generan un ClientToken y lo reusan al reintentar, así que el reintento regresa la misma respuesta en lugar de crear otra instancia.',a:['Featonby, M. (s.f.). <i>Making retries safe with idempotent APIs</i>. Amazon Builders’ Library. https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/']},
+  stripe:{t:'Llaves de idempotencia en pagos',d:'Stripe permite enviar el encabezado Idempotency-Key en las peticiones POST: si la misma llave llega otra vez, regresa el resultado de la primera en lugar de repetir la operación.',a:['Stripe. (s.f.). <i>Idempotent requests</i>. Stripe API Reference. https://docs.stripe.com/api/idempotent_requests']},
+  owasp3:{t:'OWASP API Security Top 10 (2023)',d:'Lista de los diez riesgos más importantes en APIs. API3:2023 (Broken Object Property Level Authorization, antes mass assignment): el endpoint permite al usuario cambiar, agregar o borrar el valor de una propiedad que no debería poder tocar; se previene permitiendo cambiar solo las propiedades que el cliente debe actualizar. API8:2023 (Security Misconfiguration) incluye los mensajes de error que muestran trazas o información sensible. Los dos primeros riesgos son Broken Object Level Authorization y Broken Authentication.',a:['OWASP Foundation. (2023). <i>OWASP API security top 10 – 2023</i>. https://owasp.org/API-Security/editions/2023/en/0x11-t10/']},
+  codigos:{t:'400, 404, 409 y 422',d:'400: el servidor no puede o no quiere procesar la petición por un error del cliente, como una sintaxis mal formada (§15.5.1). 404: no encontró el recurso de la ruta (§15.5.5). 409: la petición choca con el estado actual del recurso (§15.5.10). 422: entiende el tipo de contenido y la sintaxis es correcta, pero no puede procesar las instrucciones que contiene (§15.5.21).',a:[R9110]},
+  problem:{t:'Problem Details for HTTP APIs',d:'RFC 9457 define un formato JSON estándar para los errores de una API (application/problem+json), con campos como type, title, status y detail. Zalando exige usarlo en su regla [176]. En el curso usamos un formato más simple, {"error", "detalles"}.',a:['Nottingham, M., Wilde, E., y Dalal, S. (2023). <i>Problem details for HTTP APIs</i> (RFC 9457). Internet Engineering Task Force. https://doi.org/10.17487/RFC9457']},
+  sat:{t:'Servicio del SAT para consultar CFDI',d:'El servicio de consulta del estado de un CFDI del SAT publica un WSDL y se consume por SOAP; librerías como phpcfdi lo hacen así.',a:['phpcfdi. (s.f.). <i>sat-estado-cfdi</i> [Repositorio de software]. GitHub. https://github.com/phpcfdi/sat-estado-cfdi']},
+  fastapi:{t:'FastAPI y Pydantic',d:'FastAPI valida el cuerpo de la petición con modelos de Pydantic y responde 422 cuando los datos no cumplen el modelo.',a:['Ramírez, S. (s.f.). <i>FastAPI</i>. https://fastapi.tiangolo.com/','Pydantic Services. (s.f.). <i>Pydantic documentation</i>. https://docs.pydantic.dev/']},
+  express:{t:'Manejo de errores en Express',d:'Express trae un manejador de errores por defecto que responde en HTML y, en modo desarrollo, incluye la traza del error.',a:['OpenJS Foundation. (s.f.). <i>Error handling</i>. Express. https://expressjs.com/en/guide/error-handling.html']},
+  laravel:{t:'Validación en Laravel',d:'Si la validación falla y la petición espera JSON, Laravel responde 422 con los errores en JSON; si no, redirige a la página anterior.',a:['Laravel. (s.f.). <i>Validation</i>. Laravel Documentation. https://laravel.com/docs/validation']}
+};
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const S=$$('.s');let cur=0;
+function fit(){const k=Math.min(innerWidth/1280,innerHeight/720);$('#stage').style.transform=`translate(-50%,-50%) scale(${k})`}
+function show(i){cur=Math.max(0,Math.min(S.length-1,i));S.forEach((s,j)=>s.classList.toggle('on',j===cur));$('#cnt').textContent=`${cur+1} / ${S.length}`;$('#bar').style.width=((cur+1)/S.length*100)+'%';try{history.replaceState(null,'','#'+(cur+1))}catch(e){}}
+addEventListener('resize',fit);fit();
+$('#prev').onclick=()=>show(cur-1);$('#next').onclick=()=>show(cur+1);
+$('#fs').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen()};
+addEventListener('keydown',e=>{if(!$('#modal').hidden){if(e.key==='Escape')closeM();return}
+  if(e.target.closest&&e.target.closest('button')&&(e.key===' '||e.key==='Enter'))return;
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(cur+1)}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(cur-1)}
+  else if(e.key==='Home')show(0);else if(e.key==='End')show(S.length-1);else if(e.key==='f'||e.key==='F')$('#fs').click()});
+let lastFocus=null;
+function openM(k){const r=REFS[k];if(!r)return;lastFocus=document.activeElement;$('#mt').textContent=r.t;$('#md').textContent=r.d;$('#ma').innerHTML=r.a.map(x=>`<div>${x}</div>`).join('<div style="height:8px"></div>');$('#modal').hidden=false;$('#mc').focus()}
+function closeM(){$('#modal').hidden=true;if(lastFocus)lastFocus.focus()}
+$$('.ref').forEach(b=>b.addEventListener('click',()=>openM(b.dataset.ref)));
+$('#mc').onclick=closeM;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeM()});
+const all=[...new Set(Object.values(REFS).flatMap(r=>r.a))].sort((a,b)=>a.replace(/<[^>]+>/g,'').localeCompare(b.replace(/<[^>]+>/g,''),'es'));
+$('#reflist').innerHTML=all.map(x=>`<p style="font-size:19px;margin:0 0 10px;padding-left:2em;text-indent:-2em">${x}</p>`).join('');
+
+$$('.rv button').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.a,s=document.createElement('span');s.className='ans pill '+(/^Pasa/.test(a)?'ok':'info');s.textContent=a;b.replaceWith(s)}));
+show(Math.max(0,(parseInt(location.hash.slice(1),10)||1)-1));
+</script>
+</body>
+</html>
